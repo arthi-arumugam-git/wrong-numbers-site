@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Anthropic cache tokens not counted in total_tokens</title>
+<meta name="description" content="Your Anthropic bill beats your dashboard because cached tokens sit outside input_tokens. Where the bug hides, and how to check your own stack in ten minutes.">
+<link rel="canonical" href="https://wrong-numbers.dev/articles/anthropic-cache-tokens-not-counted/">
+
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://wrong-numbers.dev/articles/anthropic-cache-tokens-not-counted/">
+<meta property="og:title" content="Anthropic cache tokens not counted in total_tokens">
+<meta property="og:description" content="Why your reported LLM cost reads low, where the bug lives, and how to check your own stack in ten minutes.">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="/styles.css">
+
+<script>
+  try {
+    var t = localStorage.getItem("theme");
+    if (t) document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "Anthropic cache tokens not counted in total_tokens — why your LLM cost reads low",
+  "description": "cache_read_input_tokens and cache_creation_input_tokens sit outside input_tokens. Libraries that sum only input and output silently under-report every cached request.",
+  "author": {
+    "@type": "Person",
+    "name": "Arthi Arumugam",
+    "url": "https://wrong-numbers.dev/",
+    "sameAs": ["https://github.com/arthi-arumugam-git"]
+  },
+  "publisher": { "@type": "Person", "name": "Arthi Arumugam" },
+  "mainEntityOfPage": "https://wrong-numbers.dev/articles/anthropic-cache-tokens-not-counted/",
+  "about": ["Anthropic prompt caching", "LLM token accounting", "LLM cost attribution"]
+}
+</script>
+</head>
+
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <a class="wordmark" href="/">Wrong&nbsp;Numbers</a>
+  <nav aria-label="Primary">
+    <a href="/#ledger">Evidence</a>
+    <a href="/#audit">The audit</a>
+    <a class="cta-sm" href="mailto:arthi1805@gmail.com?subject=Cost%20reconciliation%20audit">Get in touch</a>
+    <button id="theme" type="button" aria-label="Toggle colour theme">◐</button>
+  </nav>
+</header>
+
+<main id="main">
+<section class="article">
+
+  <p class="meta">LLM cost accounting · defect note</p>
+  <h1>Anthropic cache tokens are not in <code>total_tokens</code></h1>
+
+  <p class="lede">
+    If your Anthropic invoice is higher than the number on your own dashboard, the most likely cause
+    is not sampling, retries or a pricing table. It is that your cached tokens were never counted.
+  </p>
+
+  <h2>The shape of the bug</h2>
+
+  <p>
+    Anthropic's usage object reports cache activity in fields that sit <em>outside</em>
+    <code>input_tokens</code>:
+  </p>
+
+<pre><code>"usage": {
+  "input_tokens": 25,
+  "cache_read_input_tokens": 75,
+  "cache_creation_input_tokens": 0,
+  "output_tokens": 40
+}</code></pre>
+
+  <p>
+    A request that actually consumed 100 tokens of input reports <code>input_tokens: 25</code>. That
+    is correct, and it is documented. The defect appears in the layer above, when a library normalises
+    providers into one shape and writes:
+  </p>
+
+<pre><code>total_tokens = usage.input_tokens + usage.output_tokens   # 65, not 140</code></pre>
+
+  <p>
+    Nothing raises. The call succeeds, the response is valid, the number is plausible, and every cost
+    figure computed downstream is low by exactly the cached portion. On a workload built around prompt
+    caching &mdash; which is to say, most agent workloads &mdash; that portion is the majority of your input.
+  </p>
+
+  <div class="callout">
+    <p>
+      OpenAI's <code>prompt_tokens</code> is <strong>inclusive</strong> of cached tokens. Anthropic's
+      <code>input_tokens</code> is <strong>exclusive</strong>. Any adapter that treats the two
+      conventions as interchangeable is wrong in one direction or the other, and which direction
+      depends on which provider you routed to.
+    </p>
+  </div>
+
+  <h2>Both directions are real</h2>
+
+  <p>
+    Under-counting is the common case, but the inverse ships too. In Meta's Llama Stack the
+    Anthropic-compatible endpoint copied OpenAI's inclusive prompt tokens into Anthropic's exclusive
+    input tokens <em>and</em> added the cache read on top. A 100-token request with 75 cached totalled
+    <span class="num">175</span>. Same root cause, opposite sign, and equally silent.
+  </p>
+
+  <p>
+    In a mixture-of-agents aggregator at Nous Research, an auxiliary usage shim dropped
+    <code>cache_read</code> and <code>cache_creation</code> before the aggregation step. Cost
+    under-reported by roughly <span class="num">7&times;</span>.
+  </p>
+
+  <h2>Where it hides</h2>
+
+  <ul>
+    <li>
+      <strong>Provider adapters.</strong> Any function normalising several providers into one usage
+      shape. This is where the inclusive/exclusive mismatch lives.
+    </li>
+    <li>
+      <strong>Streaming paths.</strong> Usage accumulated across chunks is frequently overwritten by a
+      final <code>message_delta</code>, erasing what was already counted.
+    </li>
+    <li>
+      <strong>Gateways and routers.</strong> Anthropic models served through an OpenAI-compatible proxy
+      lose cache fields at the translation boundary, because the OpenAI schema has nowhere to put them.
+    </li>
+    <li>
+      <strong>Bedrock and Vertex.</strong> The same model behind a different vendor's envelope often
+      uses a third field naming convention again.
+    </li>
+    <li>
+      <strong>Observability exporters.</strong> Cost can be correct in your application and wrong on the
+      dashboard, if the span attributes drop the cache breakdown in transit.
+    </li>
+  </ul>
+
+  <h2>Check your own stack in ten minutes</h2>
+
+  <ol>
+    <li>Pick one production day. Sum the cost your system reported for Anthropic calls.</li>
+    <li>Open the Anthropic console and take the actual spend for the same window.</li>
+    <li>
+      If your number is low, log one raw <code>usage</code> object and confirm whether
+      <code>cache_read_input_tokens</code> is non-zero and whether it reaches your total.
+    </li>
+    <li>
+      Grep your codebase for <code>input_tokens</code> and check every site that adds it to
+      <code>output_tokens</code> without also reading the two cache fields.
+    </li>
+  </ol>
+
+  <p>
+    A gap that tracks your cache-hit rate is this bug. A gap that is flat regardless of caching is a
+    pricing table problem instead, which is a different and easier fix.
+  </p>
+
+  <h2>Prior fixes</h2>
+
+  <p>
+    I have found and fixed this defect class in production libraries, each shipped with a test that
+    fails on <code>main</code>: Pipecat (Anthropic and Bedrock services), LiveKit agents (Bedrock
+    <code>prompt_tokens</code>), mcp-use (uncounted cache tokens plus a streaming
+    <code>message_delta</code> erasing accumulated usage), deepset Haystack (the OpenAI-compatible
+    integration), ogx &mdash; formerly Meta's Llama Stack &mdash; and Roboflow, where a usage-tracking failure
+    could fail the very call it was measuring. In the OpenAI Agents SDK, every
+    <code>responses.compact</code> call was billed but left out of run totals; I wrote the first fix and
+    an OpenAI engineer's superseding patch shipped with my credit as co-author.
+  </p>
+
+  <div class="callout">
+    <p>
+      <strong>If your reported spend and your provider invoice disagree, one of them is lying.</strong>
+      Tell me which providers, libraries and gateways sit in your path and I will tell you where to look
+      first &mdash; before you engage me.
+      <a href="mailto:arthi1805@gmail.com?subject=Cache%20token%20accounting">arthi1805@gmail.com</a>
+    </p>
+  </div>
+
+  <p>
+    Related: <a href="/articles/openai-prompt-tokens-vs-anthropic-input-tokens/">OpenAI <code>prompt_tokens</code> vs Anthropic <code>input_tokens</code></a>
+    · <a href="/articles/streaming-message-delta-erases-token-usage/">Streaming <code>message_delta</code> erases accumulated usage</a>
+    · <a href="/articles/claude-bill-higher-than-dashboard/">Why your Claude bill is higher than your dashboard</a>
+  </p>
+
+  <p><a href="/">&larr; Back to the audit</a></p>
+
+</section>
+</main>
+
+<footer>
+  <p><strong>Wrong Numbers</strong> &middot; Arthi Arumugam &middot; Bengaluru, India (IST, UTC+5:30)</p>
+  <p><a href="https://github.com/arthi-arumugam-git">GitHub</a> &middot; <a href="mailto:arthi1805@gmail.com">Email</a></p>
+</footer>
+
+<script>
+  (function () {
+    var btn = document.getElementById("theme");
+    btn.addEventListener("click", function () {
+      var cur = document.documentElement.getAttribute("data-theme");
+      if (!cur) cur = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      var next = cur === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      try { localStorage.setItem("theme", next); } catch (e) {}
+    });
+  })();
+</script>
+</body>
+</html>

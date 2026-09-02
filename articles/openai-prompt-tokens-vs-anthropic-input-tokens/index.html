@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>OpenAI prompt_tokens vs Anthropic input_tokens</title>
+<meta name="description" content="OpenAI's prompt_tokens includes cached tokens. Anthropic's input_tokens excludes them. Treating the two as the same field is why normalised cost is wrong.">
+<link rel="canonical" href="https://wrong-numbers.dev/articles/openai-prompt-tokens-vs-anthropic-input-tokens/">
+
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://wrong-numbers.dev/articles/openai-prompt-tokens-vs-anthropic-input-tokens/">
+<meta property="og:title" content="OpenAI prompt_tokens vs Anthropic input_tokens">
+<meta property="og:description" content="One is inclusive of cached tokens, the other is exclusive. Any adapter treating them as interchangeable is wrong in one direction or the other.">
+<meta property="og:site_name" content="Wrong Numbers">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="/styles.css">
+
+<script>
+  try { var t = localStorage.getItem("theme"); if (t) document.documentElement.setAttribute("data-theme", t); } catch (e) {}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "OpenAI prompt_tokens vs Anthropic input_tokens",
+  "description": "OpenAI's prompt_tokens is inclusive of cached tokens; Anthropic's input_tokens is exclusive. Normalising the two without accounting for that produces wrong cost in both directions.",
+  "author": { "@type": "Person", "name": "Arthi Arumugam", "url": "https://wrong-numbers.dev/", "sameAs": ["https://github.com/arthi-arumugam-git"] },
+  "publisher": { "@type": "Person", "name": "Arthi Arumugam" },
+  "mainEntityOfPage": "https://wrong-numbers.dev/articles/openai-prompt-tokens-vs-anthropic-input-tokens/",
+  "about": ["OpenAI API usage", "Anthropic API usage", "Prompt caching", "Token accounting"]
+}
+</script>
+</head>
+
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <a class="wordmark" href="/">Wrong Numbers</a>
+  <nav aria-label="Primary">
+    <a href="/#ledger">Evidence</a>
+    <a href="/#audit">Audit</a>
+    <a class="cta-sm" href="mailto:arthi1805@gmail.com?subject=Cost%20reconciliation%20audit">Book</a>
+    <button id="theme" type="button" aria-label="Toggle colour theme">◐</button>
+  </nav>
+</header>
+
+<main id="main">
+<section class="article">
+
+  <p class="meta">LLM cost accounting · defect note</p>
+  <h1>OpenAI <code>prompt_tokens</code> vs Anthropic <code>input_tokens</code></h1>
+
+  <p class="lede">
+    They look like the same field with different names. They are not. One counts cached tokens,
+    the other does not, and every adapter that treats them as interchangeable is wrong — the only
+    question is in which direction.
+  </p>
+
+  <h2>The difference in one line</h2>
+
+  <p>
+    <strong>OpenAI's <code>prompt_tokens</code> is inclusive.</strong> Cached tokens are already
+    inside it; <code>prompt_tokens_details.cached_tokens</code> tells you how many of them were
+    cache hits, as a breakdown of a total you already have.
+  </p>
+
+  <p>
+    <strong>Anthropic's <code>input_tokens</code> is exclusive.</strong> Cached tokens are
+    <em>not</em> inside it; <code>cache_read_input_tokens</code> and
+    <code>cache_creation_input_tokens</code> are separate quantities that must be added.
+  </p>
+
+<pre><code># OpenAI — 100 tokens of input, 75 of them cached
+"usage": {
+  "prompt_tokens": 100,                      # already includes the 75
+  "prompt_tokens_details": { "cached_tokens": 75 },
+  "completion_tokens": 40
+}
+
+# Anthropic — the same request
+"usage": {
+  "input_tokens": 25,                        # excludes the 75
+  "cache_read_input_tokens": 75,
+  "cache_creation_input_tokens": 0,
+  "output_tokens": 40
+}</code></pre>
+
+  <p>
+    Both objects describe an identical request. One says 100, the other says 25. Both are correct.
+  </p>
+
+  <h2>Where it goes wrong</h2>
+
+  <p>
+    The bug is never in the provider SDK. It appears one layer up, in the function that flattens
+    several providers into a single usage shape — the thing every framework, gateway and
+    observability exporter has.
+  </p>
+
+<pre><code># Under-counting: Anthropic through an OpenAI-shaped normaliser
+prompt_tokens = usage.input_tokens          # 25, not 100
+# every cost built on this is low by the cache read
+
+# Over-counting: OpenAI semantics applied to an Anthropic payload
+prompt_tokens = usage.input_tokens + usage.cache_read_input_tokens \
+              + usage.prompt_tokens         # double-counts the cache</code></pre>
+
+  <p>
+    Both ship. In Meta's Llama Stack — now ogx — the Anthropic-compatible endpoint copied OpenAI's
+    inclusive prompt tokens into Anthropic's exclusive input tokens <em>and</em> added the cache read
+    on top. A 100-token request with 75 cached totalled <span class="num bad">175</span>. Same root
+    cause as the under-count, opposite sign, equally silent.
+  </p>
+
+  <div class="callout">
+    <p>
+      A normaliser is only correct if it knows, per provider, whether the base field already
+      contains the cache. Storing one <code>prompt_tokens</code> integer and losing that
+      distinction makes the error unrecoverable downstream — no dashboard can reconstruct it.
+    </p>
+  </div>
+
+  <h2>The conventions, side by side</h2>
+
+  <ul>
+    <li><strong>OpenAI</strong> — <code>prompt_tokens</code> inclusive; breakdown in <code>prompt_tokens_details.cached_tokens</code>.</li>
+    <li><strong>Anthropic</strong> — <code>input_tokens</code> exclusive; add <code>cache_read_input_tokens</code> and <code>cache_creation_input_tokens</code>.</li>
+    <li><strong>Anthropic via Bedrock</strong> — same exclusive semantics, different envelope and different field names again. I fixed the Bedrock path in LiveKit agents and in Pipecat separately from the direct API path, because they are genuinely different code.</li>
+    <li><strong>Anthropic via an OpenAI-compatible gateway</strong> — the worst case. The OpenAI schema has nowhere to put the cache fields, so they are frequently dropped at the translation boundary and the loss is invisible on both sides.</li>
+    <li><strong>Gemini</strong> — adds a third axis: thinking tokens, which can appear in the total without appearing in the cost. That exact bug is open in Langfuse as #16321.</li>
+  </ul>
+
+  <h2>How to check yours in five minutes</h2>
+
+  <ol>
+    <li>Log one raw <code>usage</code> object per provider, unmodified, straight from the SDK.</li>
+    <li>
+      For the Anthropic one, confirm <code>input_tokens</code> is smaller than the prompt you
+      actually sent. If it is, your cache fields are live and must be added somewhere.
+    </li>
+    <li>
+      Grep for every site that reads <code>input_tokens</code> or <code>prompt_tokens</code>.
+      Each one either handles both conventions or is wrong for one provider.
+    </li>
+    <li>
+      Assert it: send a known request twice, so the second is a cache hit, and check that your
+      recorded total is the same both times. It should be — the cache changes the price, not the
+      token count. If your total drops on the second call, you are dropping the cache read.
+    </li>
+  </ol>
+
+  <p>
+    That last test is the one worth keeping in CI. It fails on exactly this defect class and on
+    nothing else.
+  </p>
+
+  <div class="callout">
+    <p>
+      <strong>I have shipped this fix into twelve organisations</strong>, each with a test that fails
+      on <code>main</code> — Pipecat, LiveKit, mcp-use, deepset Haystack, ogx, Roboflow, Pydantic,
+      and a co-author credit on the OpenAI Agents SDK. If your stack crosses two providers, it is
+      worth an hour of someone's attention.
+      <a href="mailto:arthi1805@gmail.com?subject=Token%20normalisation">arthi1805@gmail.com</a>
+    </p>
+  </div>
+
+  <p>
+    Related: <a href="/articles/anthropic-cache-tokens-not-counted/">Anthropic cache tokens are not in <code>total_tokens</code></a>
+    · <a href="/articles/claude-bill-higher-than-dashboard/">Why your Claude bill is higher than your dashboard</a>
+  </p>
+
+  <p><a href="/">← Back to the audit</a></p>
+
+</section>
+</main>
+
+<footer>
+  <p>Wrong Numbers — Arthi Arumugam</p>
+  <p>Bengaluru · IST</p>
+  <p><a href="https://github.com/arthi-arumugam-git">GitHub</a> · <a href="mailto:arthi1805@gmail.com">Email</a></p>
+</footer>
+
+<script>
+  (function () {
+    var btn = document.getElementById("theme");
+    btn.addEventListener("click", function () {
+      var cur = document.documentElement.getAttribute("data-theme");
+      if (!cur) cur = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      var next = cur === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      try { localStorage.setItem("theme", next); } catch (e) {}
+    });
+  })();
+</script>
+</body>
+</html>

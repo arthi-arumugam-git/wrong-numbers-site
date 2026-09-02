@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Streaming message_delta erases accumulated token usage</title>
+<meta name="description" content="The final message_delta on a streamed response is often assigned rather than added, wiping usage counted across earlier chunks.">
+<link rel="canonical" href="https://wrong-numbers.dev/articles/streaming-message-delta-erases-token-usage/">
+
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://wrong-numbers.dev/articles/streaming-message-delta-erases-token-usage/">
+<meta property="og:title" content="Streaming message_delta erases accumulated token usage">
+<meta property="og:description" content="Assigning the final delta instead of adding it wipes everything counted so far. Streamed calls under-report; non-streamed calls are fine.">
+<meta property="og:site_name" content="Wrong Numbers">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="/styles.css">
+
+<script>
+  try { var t = localStorage.getItem("theme"); if (t) document.documentElement.setAttribute("data-theme", t); } catch (e) {}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "Streaming message_delta erases accumulated token usage",
+  "description": "The final message_delta on a streamed Anthropic response is frequently assigned rather than added, discarding usage accumulated across earlier events.",
+  "author": { "@type": "Person", "name": "Arthi Arumugam", "url": "https://wrong-numbers.dev/", "sameAs": ["https://github.com/arthi-arumugam-git"] },
+  "publisher": { "@type": "Person", "name": "Arthi Arumugam" },
+  "mainEntityOfPage": "https://wrong-numbers.dev/articles/streaming-message-delta-erases-token-usage/",
+  "about": ["Server-sent events", "Anthropic streaming", "Token accounting", "LLM cost attribution"]
+}
+</script>
+</head>
+
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <a class="wordmark" href="/">Wrong Numbers</a>
+  <nav aria-label="Primary">
+    <a href="/#ledger">Evidence</a>
+    <a href="/#audit">Audit</a>
+    <a class="cta-sm" href="mailto:arthi1805@gmail.com?subject=Cost%20reconciliation%20audit">Book</a>
+    <button id="theme" type="button" aria-label="Toggle colour theme">◐</button>
+  </nav>
+</header>
+
+<main id="main">
+<section class="article">
+
+  <p class="meta">LLM cost accounting · defect note</p>
+  <h1>Streaming <code>message_delta</code> erases accumulated usage</h1>
+
+  <p class="lede">
+    Your streamed calls report less than they cost and your non-streamed calls are perfect. That
+    asymmetry has one common cause: the final event was assigned to your usage variable instead of
+    added to it, discarding everything counted before it.
+  </p>
+
+  <h2>How usage arrives on a stream</h2>
+
+  <p>
+    A streamed Anthropic response spreads usage across events rather than handing you one object at
+    the end. <code>message_start</code> carries the input side — including the cache fields.
+    <code>message_delta</code> arrives last and carries the output side.
+  </p>
+
+<pre><code>event: message_start
+data: {"message": {"usage": {
+  "input_tokens": 25,
+  "cache_read_input_tokens": 75,
+  "output_tokens": 1
+}}}
+
+event: message_delta
+data: {"usage": {"output_tokens": 412}}</code></pre>
+
+  <p>
+    Note what the final event does <em>not</em> contain: <code>input_tokens</code>, and neither cache
+    field. It is a delta, not a summary. Anything that treats it as a summary loses the input side
+    entirely.
+  </p>
+
+  <h2>The bug</h2>
+
+<pre><code># WRONG — the last event replaces everything counted before it
+async for event in stream:
+    if event.usage:
+        usage = event.usage        # input_tokens and cache reads: gone
+
+# RIGHT — the input side is captured once, the output side accumulates
+async for event in stream:
+    if event.type == "message_start":
+        usage = event.message.usage
+    elif event.type == "message_delta":
+        usage.output_tokens = event.usage.output_tokens</code></pre>
+
+  <p>
+    In the wrong version the recorded input is whatever the final delta happened to carry, which
+    is usually nothing at all. On a cache-heavy agent workload — where the input side is the
+    expensive side — this discards the majority of the bill. I fixed this in mcp-use #2127,
+    alongside uncounted Anthropic cache tokens in the same code path.
+  </p>
+
+  <div class="callout">
+    <p>
+      This is a different defect from the cache-token one and they frequently coexist, because both
+      live in the same handler. Fixing only the cache fields still leaves streamed calls wrong;
+      fixing only the accumulation still leaves cached calls wrong.
+      <a href="/articles/anthropic-cache-tokens-not-counted/">The cache-token defect →</a>
+    </p>
+  </div>
+
+  <h2>Why it survives review</h2>
+
+  <p>
+    The code reads correctly. <code>if event.usage: usage = event.usage</code> looks like
+    defensive assignment — take the usage whenever the event has usage. It is only wrong because
+    of a protocol detail that is not visible at the call site: that later events carry a subset of
+    the fields, not a superset.
+  </p>
+
+  <p>
+    Nothing raises. The stream completes, the text is correct, the usage object exists and has
+    plausible integers in it. The only observable symptom is a number on a dashboard that is too
+    small, months later.
+  </p>
+
+  <h2>The test that catches it</h2>
+
+  <p>
+    Assert against a recorded event sequence rather than a live call, so the test is
+    deterministic and runs in CI:
+  </p>
+
+<pre><code>def test_streamed_usage_keeps_the_input_side():
+    events = [
+        message_start(input_tokens=25, cache_read_input_tokens=75, output_tokens=1),
+        content_delta("..."),
+        message_delta(output_tokens=412),
+    ]
+
+    usage = collect_usage(events)
+
+    # the input side survives the final delta
+    assert usage.input_tokens == 25
+    assert usage.cache_read_input_tokens == 75
+    # and the output side is the final value, not the first
+    assert usage.output_tokens == 412</code></pre>
+
+  <p>
+    The first two assertions fail on the buggy implementation and pass on the fixed one. That is
+    the whole test. Every fix I ship carries one like it, because a correctness fix without a test
+    that fails on <code>main</code> is just a diff someone will undo.
+  </p>
+
+  <h2>Checking your own stack</h2>
+
+  <ol>
+    <li>Split one production day's reconciliation by <code>stream=True</code> and <code>stream=False</code>.</li>
+    <li>If the gap sits almost entirely on the streamed side, this is your defect.</li>
+    <li>Find every handler that reads usage from a stream event and check whether it assigns or accumulates.</li>
+    <li>Check gateways too — a proxy that re-emits events can drop <code>message_start</code> fields on the way through.</li>
+  </ol>
+
+  <div class="callout">
+    <p>
+      <strong>If your reported spend and your provider invoice disagree, one of them is lying.</strong>
+      Tell me which providers, libraries and gateways sit in your path and I'll tell you where to
+      look first — before you engage me.
+      <a href="mailto:arthi1805@gmail.com?subject=Streaming%20usage">arthi1805@gmail.com</a>
+    </p>
+  </div>
+
+  <p>
+    Related: <a href="/articles/openai-prompt-tokens-vs-anthropic-input-tokens/">OpenAI <code>prompt_tokens</code> vs Anthropic <code>input_tokens</code></a>
+    · <a href="/articles/claude-bill-higher-than-dashboard/">Why your Claude bill is higher than your dashboard</a>
+  </p>
+
+  <p><a href="/">← Back to the audit</a></p>
+
+</section>
+</main>
+
+<footer>
+  <p>Wrong Numbers — Arthi Arumugam</p>
+  <p>Bengaluru · IST</p>
+  <p><a href="https://github.com/arthi-arumugam-git">GitHub</a> · <a href="mailto:arthi1805@gmail.com">Email</a></p>
+</footer>
+
+<script>
+  (function () {
+    var btn = document.getElementById("theme");
+    btn.addEventListener("click", function () {
+      var cur = document.documentElement.getAttribute("data-theme");
+      if (!cur) cur = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      var next = cur === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      try { localStorage.setItem("theme", next); } catch (e) {}
+    });
+  })();
+</script>
+</body>
+</html>

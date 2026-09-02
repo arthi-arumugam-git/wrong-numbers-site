@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+  <title>Wrong Numbers — defect notes</title>
+  <link>https://wrong-numbers.dev/</link>
+  <description>LLM cost accounting and eval correctness. Each note is a defect class found and fixed in production libraries.</description>
+  <language>en</language>
+  <atom:link href="https://wrong-numbers.dev/feed.xml" rel="self" type="application/rss+xml"/>
+  <item>
+    <title>Why your Claude bill is higher than your dashboard</title>
+    <link>https://wrong-numbers.dev/articles/claude-bill-higher-than-dashboard/</link>
+    <guid>https://wrong-numbers.dev/articles/claude-bill-higher-than-dashboard/</guid>
+    <pubDate>Tue, 01 Sep 2026 12:00:00 GMT</pubDate>
+    <description>Four causes of under-reported LLM spend, ranked by frequency, and the ten-minute reconciliation that identifies which one is yours.</description>
+  </item>
+  <item>
+    <title>Anthropic cache tokens are not in total_tokens</title>
+    <link>https://wrong-numbers.dev/articles/anthropic-cache-tokens-not-counted/</link>
+    <guid>https://wrong-numbers.dev/articles/anthropic-cache-tokens-not-counted/</guid>
+    <pubDate>Tue, 01 Sep 2026 11:00:00 GMT</pubDate>
+    <description>cache_read_input_tokens sits outside input_tokens; libraries that sum input and output under-report every cached request.</description>
+  </item>
+  <item>
+    <title>OpenAI prompt_tokens vs Anthropic input_tokens</title>
+    <link>https://wrong-numbers.dev/articles/openai-prompt-tokens-vs-anthropic-input-tokens/</link>
+    <guid>https://wrong-numbers.dev/articles/openai-prompt-tokens-vs-anthropic-input-tokens/</guid>
+    <pubDate>Tue, 01 Sep 2026 10:00:00 GMT</pubDate>
+    <description>One is inclusive of cached tokens, the other exclusive. Adapters that treat them as interchangeable are wrong in one direction or the other.</description>
+  </item>
+  <item>
+    <title>Streaming message_delta erases accumulated token usage</title>
+    <link>https://wrong-numbers.dev/articles/streaming-message-delta-erases-token-usage/</link>
+    <guid>https://wrong-numbers.dev/articles/streaming-message-delta-erases-token-usage/</guid>
+    <pubDate>Tue, 01 Sep 2026 09:00:00 GMT</pubDate>
+    <description>Assigning the final delta instead of accumulating wipes the input side, including cache reads. Streamed calls under-report; non-streamed are fine.</description>
+  </item>
+</channel>
+</rss>

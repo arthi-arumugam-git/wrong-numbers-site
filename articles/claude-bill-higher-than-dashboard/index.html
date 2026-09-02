@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Why your Claude bill is higher than your dashboard</title>
+<meta name="description" content="Four reasons your reported LLM spend comes in under the invoice, ranked by how often each one is the culprit, and a ten-minute check that tells you which.">
+<link rel="canonical" href="https://wrong-numbers.dev/articles/claude-bill-higher-than-dashboard/">
+
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://wrong-numbers.dev/articles/claude-bill-higher-than-dashboard/">
+<meta property="og:title" content="Why your Claude bill is higher than your dashboard">
+<meta property="og:description" content="Four causes, ranked by frequency, and a ten-minute reconciliation that identifies which one is yours.">
+<meta property="og:site_name" content="Wrong Numbers">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="/styles.css">
+
+<script>
+  try { var t = localStorage.getItem("theme"); if (t) document.documentElement.setAttribute("data-theme", t); } catch (e) {}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "Why your Claude bill is higher than your dashboard says",
+  "description": "Four causes of under-reported LLM spend, ranked by frequency, with a ten-minute reconciliation to identify which one applies.",
+  "author": { "@type": "Person", "name": "Arthi Arumugam", "url": "https://wrong-numbers.dev/", "sameAs": ["https://github.com/arthi-arumugam-git"] },
+  "publisher": { "@type": "Person", "name": "Arthi Arumugam" },
+  "mainEntityOfPage": "https://wrong-numbers.dev/articles/claude-bill-higher-than-dashboard/",
+  "about": ["Anthropic billing", "LLM cost attribution", "Prompt caching", "Token accounting"]
+}
+</script>
+</head>
+
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <a class="wordmark" href="/">Wrong Numbers</a>
+  <nav aria-label="Primary">
+    <a href="/#ledger">Evidence</a>
+    <a href="/#audit">Audit</a>
+    <a class="cta-sm" href="mailto:arthi1805@gmail.com?subject=Cost%20reconciliation%20audit">Book</a>
+    <button id="theme" type="button" aria-label="Toggle colour theme">◐</button>
+  </nav>
+</header>
+
+<main id="main">
+<section class="article">
+
+  <p class="meta">LLM cost accounting · defect note</p>
+  <h1>Why your Claude bill is higher than your dashboard</h1>
+
+  <p class="lede">
+    Your application says you spent $4,100 on Anthropic last month. The invoice says $11,800.
+    Nothing errored, no test went red, and both numbers look plausible. Here are the four causes,
+    ranked by how often each one turns out to be the culprit.
+  </p>
+
+  <h2>1. Cached tokens were never counted</h2>
+
+  <p>
+    This is the overwhelming favourite. Anthropic reports cache activity in fields that sit
+    <em>outside</em> <code>input_tokens</code>:
+  </p>
+
+<pre><code>"usage": {
+  "input_tokens": 25,
+  "cache_read_input_tokens": 75,
+  "cache_creation_input_tokens": 0,
+  "output_tokens": 40
+}</code></pre>
+
+  <p>
+    A library that normalises providers and writes
+    <code>total = input_tokens + output_tokens</code> records 65 tokens for a request that
+    actually consumed 140. You are billed for the cache read. Your dashboard is not.
+  </p>
+
+  <p>
+    The tell: <strong>the gap scales with your cache-hit rate.</strong> If the discrepancy grows
+    as caching improves, this is your bug. I have found and fixed exactly this in Pipecat,
+    LiveKit, mcp-use, deepset Haystack and Meta's Llama Stack.
+    <a href="/articles/anthropic-cache-tokens-not-counted/">Full write-up on the cache-token defect →</a>
+  </p>
+
+  <h2>2. The pricing table is stale or missing a model</h2>
+
+  <p>
+    Token counts are right; the multiplier is wrong. A model ships, your pricing map doesn't have
+    it, and the lookup quietly falls back to zero or to a sibling model's rate. In Pydantic's
+    <code>genai-prices</code> I found missing Bedrock entries for Writer Palmyra X4 and X5 — those
+    calls priced at <strong>zero</strong>. Not approximately zero. Zero.
+  </p>
+
+  <p>
+    The tell: <strong>the gap is flat regardless of caching</strong>, and it often appears as a
+    step change on the date a model was adopted. Check whether any model in your logs is absent
+    from your price map, and whether any request costed exactly 0.
+  </p>
+
+  <h2>3. Streaming lost the usage it had already accumulated</h2>
+
+  <p>
+    On streamed responses, usage arrives across events. Code accumulates it per chunk, then a
+    final <code>message_delta</code> arrives and the handler <em>assigns</em> rather than
+    <em>adds</em> — erasing everything counted so far.
+  </p>
+
+<pre><code># wrong: the final delta replaces the running total
+usage = event.usage
+
+# right: the final delta contributes to it
+usage.output_tokens += event.usage.output_tokens</code></pre>
+
+  <p>
+    The tell: <strong>streamed calls under-report and non-streamed calls are correct.</strong>
+    Split your reconciliation by <code>stream=True</code> and see whether the gap lives entirely
+    on one side. This was part of mcp-use #2127.
+  </p>
+
+  <h2>4. Failed and retried calls are billed but not recorded</h2>
+
+  <p>
+    A request that times out client-side, or throws while you are parsing its response, was still
+    served and still billed. If your usage recording happens <em>after</em> a successful parse, every
+    failure is invisible spend. Retries double this: three attempts, three charges, one record.
+  </p>
+
+  <p>
+    Worse, usage tracking can fail the very call it is measuring — I fixed that pattern in
+    Roboflow's inference package, where a tracking error propagated into the request path.
+  </p>
+
+  <p>
+    The tell: <strong>the gap correlates with your error and retry rate</strong>, not your cache-hit
+    rate, and it spikes during incidents.
+  </p>
+
+  <h2>The ten-minute check</h2>
+
+  <ol>
+    <li>Pick one production day. Sum the cost your system reported for Anthropic calls.</li>
+    <li>Take the actual figure for the same window from the Anthropic console.</li>
+    <li>Compute the gap as a percentage. Under 2% is rounding. Over 10% is a defect.</li>
+    <li>
+      Split the same day four ways — by cache-hit rate, by model, by <code>stream=True</code>,
+      and by error rate. <strong>Whichever split makes the gap move is your cause.</strong>
+    </li>
+  </ol>
+
+  <p>
+    That last step is the whole method. A single aggregate number tells you that something is
+    wrong; the splits tell you which of the four it is. Most teams never run the splits, because
+    nothing has broken loudly enough to make anyone look.
+  </p>
+
+  <h2>Why nobody catches this</h2>
+
+  <p>
+    None of these four raise. The call succeeds, the response is valid, the number is plausible,
+    and no test asserts that reported spend equals billed spend — because writing that test means
+    reconciling against an invoice, which nothing in a normal CI pipeline can reach. So the defect
+    survives until someone reads a bill and frowns.
+  </p>
+
+  <div class="callout">
+    <p>
+      <strong>If your reported spend and your provider invoice disagree, one of them is lying.</strong>
+      Tell me which providers, libraries and gateways sit in your path and I'll tell you where to
+      look first — before you engage me.
+      <a href="mailto:arthi1805@gmail.com?subject=Reconciliation">arthi1805@gmail.com</a>
+    </p>
+  </div>
+
+  <p>
+    Related: <a href="/articles/anthropic-cache-tokens-not-counted/">Anthropic cache tokens are not in <code>total_tokens</code></a>
+    · <a href="/articles/openai-prompt-tokens-vs-anthropic-input-tokens/">OpenAI <code>prompt_tokens</code> vs Anthropic <code>input_tokens</code></a>
+  </p>
+
+  <p><a href="/">← Back to the audit</a></p>
+
+</section>
+</main>
+
+<footer>
+  <p>Wrong Numbers — Arthi Arumugam</p>
+  <p>Bengaluru · IST</p>
+  <p><a href="https://github.com/arthi-arumugam-git">GitHub</a> · <a href="mailto:arthi1805@gmail.com">Email</a></p>
+</footer>
+
+<script>
+  (function () {
+    var btn = document.getElementById("theme");
+    btn.addEventListener("click", function () {
+      var cur = document.documentElement.getAttribute("data-theme");
+      if (!cur) cur = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      var next = cur === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      try { localStorage.setItem("theme", next); } catch (e) {}
+    });
+  })();
+</script>
+</body>
+</html>
