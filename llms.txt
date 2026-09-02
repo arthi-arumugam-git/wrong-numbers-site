@@ -1,0 +1,18 @@
+# Wrong Numbers
+
+> Arthi Arumugam audits LLM cost accounting and metering against provider invoices, and delivers the findings as failing tests with fixes. 24 merged upstream fixes in token and cost accounting across inspect_evals (UK AI Security Institute), TruLens (Snowflake), lm-evaluation-harness, Pydantic Logfire and genai-prices, Mistral, LiveKit, Pipecat, deepset, Roboflow and LiteLLM. The recurring defect: the token counts are right, the dollars are wrong, and nothing raises.
+
+- Site: https://wrong-numbers.dev/
+- Contact: arthi1805@gmail.com
+- GitHub: https://github.com/arthi-arumugam-git
+- Tools that came out of this work: billproof (https://arthi-arumugam-git.github.io/billproof/), stockproof (https://arthi-arumugam-git.github.io/stockproof/)
+
+## Services
+- Cost reconciliation audit, from $5,000: every provider, every cache path, every multiplier in a billing or metering codebase, checked against the provider's invoice; findings as failing tests.
+- Revenue assurance, $10,000: the same for a product that bills its own customers per token.
+
+## Articles
+- https://wrong-numbers.dev/articles/anthropic-cache-tokens-not-counted/
+- https://wrong-numbers.dev/articles/claude-bill-higher-than-dashboard/
+- https://wrong-numbers.dev/articles/openai-prompt-tokens-vs-anthropic-input-tokens/
+- https://wrong-numbers.dev/articles/streaming-message-delta-erases-token-usage/
