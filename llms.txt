@@ -1,15 +1,25 @@
 # Wrong Numbers
 
-> Arthi Arumugam audits LLM cost accounting and metering against provider invoices, and delivers the findings as failing tests with fixes. 24 merged upstream fixes in token and cost accounting across inspect_evals (UK AI Security Institute), TruLens (Snowflake), lm-evaluation-harness, Pydantic Logfire and genai-prices, Mistral, LiveKit, Pipecat, deepset, Roboflow and LiteLLM. The recurring defect: the token counts are right, the dollars are wrong, and nothing raises.
+> Arthi Arumugam audits LLM evaluation and cost accounting code: eval scores checked against known-answer tests, token and cost metering checked against provider invoices, with every finding delivered as a failing test and its fix. 26 merged upstream fixes across 14 organisations, including inspect_evals (UK AI Security Institute), TruLens (Snowflake), lm-evaluation-harness, Pydantic Logfire and genai-prices, dbt Labs MetricFlow, Mistral, LiveKit, Pipecat, deepset and Roboflow. The recurring defect: the counts look right, the score or the dollars are wrong, and nothing raises.
 
 - Site: https://wrong-numbers.dev/
 - Contact: arthi1805@gmail.com
 - GitHub: https://github.com/arthi-arumugam-git
-- Tools that came out of this work: billproof (https://arthi-arumugam-git.github.io/billproof/), stockproof (https://arthi-arumugam-git.github.io/stockproof/)
+- Field guide: https://github.com/arthi-arumugam-git/wrong-numbers
+- Tools that came out of this work: whatbroke (https://github.com/arthi-arumugam-git/whatbroke), cachecheck (https://github.com/arthi-arumugam-git/cachecheck), billproof (https://arthi-arumugam-git.github.io/billproof/), stockproof (https://arthi-arumugam-git.github.io/stockproof/)
 
 ## Services
+
+All fixed scope, fixed fee, no retainer.
+
+### Is the score right?
+- Eval integrity audit, from $5,000: scorer and metric correctness including empty denominators, LLM-as-judge parsing and scales, truncated output scored as an answer, ground-truth alignment and sample counts; findings report, a fix for each, and a regression test.
+- Eval suite build, from $10,000: an eval suite around a product's real failure modes, with ground-truth data, judges whose parsing fails closed, and metrics that report nan rather than 0.0 when nothing was measured.
+- Agent regression gates, from $5,000: CI gates that diff agent runs by tool calls, arguments, outputs, latency and cost, built on whatbroke.
+
+### Is the bill right?
 - Cost reconciliation audit, from $5,000: every provider, every cache path, every multiplier in a billing or metering codebase, checked against the provider's invoice; findings as failing tests.
-- Revenue assurance, $10,000: the same for a product that bills its own customers per token.
+- Revenue assurance, $10,000: the same for a product that bills its own customers per token, reconciling metered usage against customer invoices, under-billing, over-billing and cost basis.
 
 ## Articles
 - https://wrong-numbers.dev/articles/anthropic-cache-tokens-not-counted/

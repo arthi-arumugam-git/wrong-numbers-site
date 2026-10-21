@@ -5,30 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <title>LLM Cost &amp; Eval Correctness Audits — Wrong Numbers</title>
-<meta name="description" content="Your Claude bill is bigger than your dashboard says. Usually cached tokens. I find the accounting bug: 24 merged fixes across 13 organisations.">
+<meta name="description" content="Fixed-fee audits of LLM eval scores, token accounting and usage billing. The number looks fine, nothing raises, and it is wrong. 26 merged upstream fixes across 14 organisations.">
 <link rel="canonical" href="https://wrong-numbers.dev/">
+<meta name="theme-color" content="#0A0B0E">
 
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://wrong-numbers.dev/">
 <meta property="og:title" content="LLM Cost &amp; Eval Correctness Audits — Wrong Numbers">
-<meta property="og:description" content="The failure that never crashes: a cost figure or an eval score comes out wrong, the value stays plausible, and nothing raises. I find those. 24 merged fixes across 13 organisations.">
+<meta property="og:description" content="The failure that never crashes: an eval score or a cost figure comes out wrong, the value stays plausible, and nothing raises. I find those. 26 merged fixes across 14 organisations.">
 <meta property="og:site_name" content="Wrong Numbers">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="LLM Cost &amp; Eval Correctness Audits — Wrong Numbers">
-<meta name="twitter:description" content="Your token usage doesn't match your invoice. I find the accounting bug.">
+<meta name="twitter:description" content="Your eval passed. Your bill reconciled. Is the number right?">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
 <link rel="alternate" type="application/rss+xml" title="Wrong Numbers" href="/feed.xml">
-<link rel="stylesheet" href="/styles.css">
-
-<script>
-  try {
-    var t = localStorage.getItem("theme");
-    if (t) document.documentElement.setAttribute("data-theme", t);
-  } catch (e) {}
-</script>
+<link rel="stylesheet" href="/home.css">
 
 <script type="application/ld+json">
 {
@@ -41,11 +35,12 @@
       "jobTitle": "AI and Data Engineer",
       "email": "mailto:arthi1805@gmail.com",
       "url": "https://wrong-numbers.dev/",
-      "sameAs": ["https://github.com/arthi-arumugam-git"],
+      "sameAs": ["https://github.com/arthi-arumugam-git", "https://www.linkedin.com/in/arthi-arumugam-ai-engineer"],
       "address": { "@type": "PostalAddress", "addressLocality": "Bengaluru", "addressCountry": "IN" },
       "knowsAbout": [
         "LLM evaluation correctness", "Token accounting", "LLM cost attribution",
-        "OpenTelemetry semantic conventions", "Benchmark scorer correctness", "FinOps for AI"
+        "OpenTelemetry semantic conventions", "Benchmark scorer correctness", "FinOps for AI",
+        "LLM-as-judge", "Agent regression testing", "Revenue assurance for usage-based billing"
       ]
     },
     {
@@ -54,15 +49,24 @@
       "name": "Wrong Numbers — LLM Cost and Eval Correctness Audits",
       "provider": { "@id": "https://wrong-numbers.dev/#person" },
       "areaServed": "Worldwide",
-      "serviceType": "LLM usage, cost attribution and evaluation correctness auditing",
-      "description": "A fixed-scope audit of your LLM usage accounting and evaluation harness. Deliverable is a reconciliation report plus pull requests, each carrying a test that fails on main.",
+      "serviceType": "LLM evaluation, usage, cost attribution and billing correctness auditing",
+      "description": "Fixed-scope, fixed-fee audits and builds for LLM evaluation harnesses, token and cost accounting, and usage-based billing. Every defect is delivered as a pull request carrying a test that fails before the fix.",
       "hasOfferCatalog": {
         "@type": "OfferCatalog",
         "name": "Audits",
         "itemListElement": [
           { "@type": "Offer", "price": "5000", "priceCurrency": "USD",
-            "name": "Correctness audit",
-            "description": "Fixed-scope audit of LLM usage accounting and evaluation-harness correctness. Reconciliation report, pull requests each carrying a test that fails before the fix, and a CI gate." },
+            "name": "Eval integrity audit",
+            "description": "Checks whether an existing eval suite's numbers mean what the team thinks: scorer and metric correctness including empty denominators, LLM-as-judge parsing and scales, token and cost accounting, ground-truth alignment and sample counts. Findings report with the real numbers, a fix for each, and a regression test." },
+          { "@type": "Offer", "price": "10000", "priceCurrency": "USD",
+            "name": "Eval suite build",
+            "description": "An eval suite designed around a product's real failure modes: ground-truth datasets and rubrics, LLM judges whose parsing fails closed, metrics that report nan rather than 0.0 when nothing was measured, built on inspect_evals, lm-evaluation-harness, TruLens or the client's stack." },
+          { "@type": "Offer", "price": "5000", "priceCurrency": "USD",
+            "name": "Agent regression gates",
+            "description": "CI gates that diff agent runs by tool calls, arguments, outputs, latency and cost, importing from JSONL, OpenTelemetry, Langfuse and LangSmith, and fail the build when a run quietly loses behaviour." },
+          { "@type": "Offer", "price": "5000", "priceCurrency": "USD",
+            "name": "Cost reconciliation audit",
+            "description": "Fixed-scope audit of the code that turns LLM usage into dollars, checked against the provider's own invoice: provider adapters, cache-token conventions, streaming usage, retries and OpenTelemetry spans. Reconciliation report, pull requests each carrying a test that fails before the fix, and a CI gate." },
           { "@type": "Offer", "price": "10000", "priceCurrency": "USD",
             "name": "Revenue assurance",
             "description": "Reconciliation of metered consumption against customer invoices for usage-based AI products. Identifies under-billing and over-billing, verifies cost basis against provider invoices, and produces a signed reconciliation." }
@@ -86,7 +90,7 @@
         {
           "@type": "Question",
           "name": "What does an audit cost?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Two fixed-fee tiers. The correctness audit is 5,000 USD and checks whether your reported LLM usage and eval scores are right. Revenue assurance is 10,000 USD and reconciles what you metered against what you invoiced your customers, including under-billing, over-billing and cost basis." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Every engagement is fixed scope and fixed fee, with no retainer. For evals: an eval integrity audit from 5,000 USD, an eval suite build from 10,000 USD, and agent regression gates from 5,000 USD. For cost and billing: a cost reconciliation audit from 5,000 USD, and revenue assurance at 10,000 USD, which reconciles what you metered against what you invoiced your customers, including under-billing, over-billing and cost basis." }
         }
       ]
     }
@@ -94,305 +98,458 @@
 }
 </script>
 <!-- GEO-JSONLD -->
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Why is my Anthropic bill higher than my dashboard says?", "acceptedAnswer": {"@type": "Answer", "text": "In the cases Arthi Arumugam has fixed upstream, the most common cause is that cached tokens were never counted: Anthropic reports cache_read_input_tokens and cache_creation_input_tokens outside input_tokens, so a counter that sums only input and output tokens under-reports every cached request. The other three recurring causes are a stale pricing table, streaming code that overwrites accumulated usage with the final message_delta, and failed-then-retried calls that are billed but not logged."}}, {"@type": "Question", "name": "What is an LLM cost reconciliation audit?", "acceptedAnswer": {"@type": "Answer", "text": "A fixed-price review of the code that turns model usage into dollars, checked against the provider's own invoice or usage report. The deliverable is a set of failing tests, one per defect, each with the fix. Wrong Numbers charges from $5,000 for a codebase and $10,000 for revenue assurance on a product that bills its own customers per token."}}, {"@type": "Question", "name": "How do I check my own stack in ten minutes?", "acceptedAnswer": {"@type": "Answer", "text": "Send one request with a known cache hit and compare three numbers: what your metering recorded, what the provider's usage object returned, and what the provider's cost report shows for that day. If the three disagree, the direction of the gap names the defect. billproof does this comparison automatically for Claude Code, Codex and Gemini CLI transcripts."}}, {"@type": "Question", "name": "Who does the work?", "acceptedAnswer": {"@type": "Answer", "text": "Arthi Arumugam, an AI engineer in Bengaluru with 24 merged upstream fixes in LLM cost and token accounting across inspect_evals (UK AI Security Institute), TruLens (Snowflake), lm-evaluation-harness, Pydantic Logfire and genai-prices, Mistral, LiveKit, Pipecat, deepset, Roboflow and LiteLLM. Every fix is a public pull request linked from this page."}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Why is my Anthropic bill higher than my dashboard says?", "acceptedAnswer": {"@type": "Answer", "text": "In the cases Arthi Arumugam has fixed upstream, the most common cause is that cached tokens were never counted: Anthropic reports cache_read_input_tokens and cache_creation_input_tokens outside input_tokens, so a counter that sums only input and output tokens under-reports every cached request. The other three recurring causes are a stale pricing table, streaming code that overwrites accumulated usage with the final message_delta, and failed-then-retried calls that are billed but not logged."}}, {"@type": "Question", "name": "What is an LLM cost reconciliation audit?", "acceptedAnswer": {"@type": "Answer", "text": "A fixed-price review of the code that turns model usage into dollars, checked against the provider's own invoice or usage report. The deliverable is a set of failing tests, one per defect, each with the fix. Wrong Numbers charges from $5,000 for a codebase and $10,000 for revenue assurance on a product that bills its own customers per token."}}, {"@type": "Question", "name": "How do I check my own stack in ten minutes?", "acceptedAnswer": {"@type": "Answer", "text": "Send one request with a known cache hit and compare three numbers: what your metering recorded, what the provider's usage object returned, and what the provider's cost report shows for that day. If the three disagree, the direction of the gap names the defect. billproof does this comparison automatically for Claude Code, Codex and Gemini CLI transcripts."}}, {"@type": "Question", "name": "Who does the work?", "acceptedAnswer": {"@type": "Answer", "text": "Arthi Arumugam, an AI engineer in Bengaluru with 26 merged upstream fixes in LLM evaluation, cost and token accounting across 14 organisations, including inspect_evals (UK AI Security Institute), TruLens (Snowflake), lm-evaluation-harness, Pydantic Logfire and genai-prices, Mistral, LiveKit, Pipecat, deepset, Roboflow and dbt Labs. Every fix is a public pull request linked from this page."}}]}</script>
 <!-- /GEO-JSONLD -->
-<style>.define p{font-size:1.15rem;line-height:1.55;max-width:70ch}#answers dl{max-width:76ch}#answers dt{font-weight:600;margin-top:1.1rem}#answers dd{margin:.35rem 0 0;line-height:1.55}</style>
 </head>
 
 <body>
 <a class="skip" href="#main">Skip to content</a>
 
-<header class="topbar">
-  <a class="wordmark" href="/">Wrong Numbers</a>
-  <nav aria-label="Primary">
-    <a href="#ledger">Evidence</a>
-    <a href="#audit">Audit</a>
-    <a href="#record">Record</a>
-    <a class="cta-sm" href="mailto:arthi1805@gmail.com?subject=Cost%20reconciliation%20audit">Book</a>
-    <button id="theme" type="button" aria-label="Toggle colour theme">◐</button>
+<header class="wrap nav">
+  <a class="brand" href="/" aria-label="Wrong Numbers, home">
+    <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true"><rect x="1" y="1" width="28" height="28" rx="8" stroke="#EDEEF0" stroke-opacity=".28" stroke-width="1.5"/><path d="M8.5 12.5h13M8.5 17.5h13" stroke="#EDEEF0" stroke-width="1.8" stroke-linecap="round"/><path d="M18.5 7.5l-7 15" stroke="#FF7A45" stroke-width="2" stroke-linecap="round"/></svg>
+    <span class="brand-name">wrong numbers</span>
+    <span class="brand-tag">evals &amp; cost</span>
+  </a>
+  <nav class="nav-links" aria-label="Primary">
+    <a class="nav-more" href="#ledger">Evidence</a>
+    <a href="#audit">Audits</a>
+    <a class="nav-more" href="#proof">Record</a>
+    <a class="nav-more" href="#faq">Symptoms</a>
+    <a class="nav-more" href="#field-guide">Field guide</a>
+    <a class="btn btn-light" href="mailto:arthi1805@gmail.com?subject=Audit%20enquiry">Book</a>
   </nav>
 </header>
 
 <main id="main">
 
-  <section class="hero">
-    <div class="hero-in">
-      <p class="eyebrow" data-rise>LLM cost &amp; eval correctness audits</p>
-      <h1 data-rise>Your Claude bill is <mark>bigger</mark> than your dashboard says.</h1>
+  <section class="wrap hero" id="top">
+    <div class="hero-copy">
+      <p class="pill" data-rise><span class="pill-dot" aria-hidden="true"></span>LLM eval &amp; cost correctness audits</p>
+      <h1 data-rise>Your eval passed.<span class="dimmed">Is the <span class="accent">number</span> right?</span></h1>
       <p class="lede" data-rise>
-        A 100-token request with 75 cached totalled <span class="num">175</span>.
-        An aggregator under-reported its own cost by <span class="num bad">~7&times;</span>.
-        A sycophancy metric returned <span class="num">0.0</span> on every run, for every model.
-        <strong>None of it crashed.</strong> That's the point — the value stays plausible
-        and nothing raises.
+        A metric with no samples reported <span class="mono">0.0</span>.
+        A 100-token request with 75 cached totalled <span class="mono accent">175</span>.
+        Bedrock calls were costed at <span class="mono accent">zero</span>.
+        <strong>None of it crashed.</strong> The value stays plausible, nothing raises, and the
+        decision you make from it is wrong. I find those numbers and fix them, in your evals and in your bill.
       </p>
       <div class="actions" data-rise>
-        <a class="cta" href="mailto:arthi1805@gmail.com?subject=Cost%20reconciliation%20audit">Book an audit — from $5,000</a>
-        <a class="ghost" href="#ledger">See the evidence</a>
+        <a class="btn btn-accent" href="mailto:arthi1805@gmail.com?subject=Audit%20enquiry">Book an audit — from $5,000<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="#0A0B0E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <a class="btn btn-ghost" href="#ledger">See the evidence</a>
+      </div>
+      <p class="trust" data-rise>Fixes merged upstream at UK AISI inspect_evals · EleutherAI · TruLens · Pydantic · Pipecat · LiveKit</p>
+    </div>
+
+    <div class="scene">
+      <div class="floor" aria-hidden="true"></div>
+      <canvas id="sphere" aria-hidden="true"></canvas>
+      <div class="stack">
+        <div class="ghost-card ghost-a" aria-hidden="true">
+          <div class="k">judge.parse()</div>
+          <div>"rate it 1 to 10" → <span class="accent">10</span></div>
+        </div>
+        <div class="ghost-card ghost-b" aria-hidden="true">
+          <div class="k">usage.total_tokens</div>
+          <div>cache_read <span class="accent">× 2</span></div>
+        </div>
+        <div class="report" role="img" aria-label="Example eval report: the dashboard shows accuracy 0.00 and a passing gate, but no samples were scored, so the true value is nan and the gate should fail closed">
+          <div class="scan"></div>
+          <div class="report-head">
+            <span>eval · refusal_rate</span>
+            <span class="flip flip-label"><span class="was">dashboard says</span><span class="is">what was true</span></span>
+          </div>
+          <div class="report-rows">
+            <div class="row"><span>samples</span><span>412</span></div>
+            <div class="row"><span>scored</span><span class="accent">0</span></div>
+            <div class="row"><span>accuracy</span><span class="flip flip-big"><span class="was">0.00</span><span class="is">nan</span></span></div>
+            <div class="row"><span>gate</span><span class="flip flip-gate"><span class="was badge badge-pass">PASS</span><span class="is badge badge-fail">FAIL CLOSED</span></span></div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
-  <section id="what" class="define">
-    <div class="wrap">
-      <p><strong>Wrong Numbers</strong> is an audit practice for LLM cost accounting and evaluation code, run by Arthi Arumugam. It checks the code that turns tokens into dollars, or model outputs into scores, against the provider's invoice or a known-answer test, and delivers each defect as a failing test with the fix. The recurring finding across 24 merged upstream fixes: the counts are right, the dollars are wrong, and nothing raises.</p>
+  <section class="wrap" aria-label="Track record">
+    <div class="stats">
+      <div class="stat" data-rise><span class="stat-n">26</span><span class="stat-t">fixes merged upstream, across 14 open-source organisations</span></div>
+      <div class="stat" data-rise><span class="stat-n">8</span><span class="stat-t">merged into the UK AI Security Institute's inspect_evals</span></div>
+      <div class="stat" data-rise><span class="stat-n">48</span><span class="stat-t">more pull requests under review, from deepeval to litellm</span></div>
+      <div class="stat" data-rise><span class="stat-n accent">94%</span><span class="stat-t">fewer bytes scanned per query by a production agent I shipped on Vertex AI</span></div>
     </div>
   </section>
 
-  <section id="ledger">
-    <div class="wrap">
-      <h2>Defects found &amp; fixed</h2>
-      <p class="note">
-        Every card is a merged pull request in someone else's repository. Each shipped with a
-        test that fails on <code>main</code>. <strong>24 across 13 organisations.</strong>
-      </p>
+  <section id="what" class="wrap define">
+    <p data-rise><strong>Wrong Numbers</strong> is an audit practice for LLM evaluation and cost accounting code, run by Arthi Arumugam. It checks the code that turns model outputs into scores, or tokens into dollars, against a known-answer test or the provider's invoice, and delivers each defect as a failing test with the fix. The recurring finding across 26 merged upstream fixes: the counts look right, the score or the dollars are wrong, and nothing raises.</p>
+  </section>
 
-      <ol class="ledger">
-        <li data-rise>
-          <div class="org">Meta Llama Stack <span class="tag">now ogx</span></div>
-          <p class="defect">The Anthropic-compatible endpoint copied OpenAI's <em>inclusive</em> prompt tokens into Anthropic's <em>exclusive</em> input tokens, and also added the cache read.</p>
-          <p class="effect">A 100-token request with 75 cached totalled <span class="num bad">175</span>.</p>
-        </li>
-        <li data-rise>
-          <div class="org">Nous Research</div>
-          <p class="defect">An auxiliary usage shim dropped <code>cache_read</code> and <code>cache_creation</code> tokens before they reached the aggregator.</p>
-          <p class="effect">Mixture-of-agents cost under-reported by <span class="num bad">~7&times;</span>.</p>
-        </li>
-        <li data-rise>
-          <div class="org">UK AI Security Institute <span class="tag">8 merged</span></div>
-          <p class="defect">A sycophancy metric lost its denominator. A stereotype score was built from samples that were never scored. A harm benchmark scored a model that refused every task identically to one that attempted everything and failed.</p>
-          <p class="effect">Metrics returning <span class="num">0.0</span> where they had measured nothing. I then co-wrote the repo's convention for an empty denominator.</p>
-        </li>
-        <li data-rise>
-          <div class="org">dbt Labs <span class="tag">MetricFlow</span></div>
-          <p class="defect">A query reducer with no notion of determinism re-evaluated a UUID at every reference, so every row landed in its own partition and de-duplication kept what it existed to remove.</p>
-          <p class="effect">A conversion rate read <span class="num">0.5</span> alone and <span class="num bad">0.75</span> beside its own input metric.</p>
-        </li>
-        <li data-rise>
-          <div class="org">Pydantic <span class="tag">Logfire</span></div>
-          <p class="defect">Missing Bedrock prices for Writer Palmyra; Bedrock calls priced under the wrong provider.</p>
-          <p class="effect">Those calls costed at <span class="num bad">zero</span>.</p>
-        </li>
-        <li data-rise>
-          <div class="org">OpenAI <span class="tag">co-author credit</span></div>
-          <p class="defect">Every <code>responses.compact</code> call in the Agents SDK was billed but left out of run totals.</p>
-          <p class="effect">I wrote the first fix; an OpenAI engineer's superseding patch shipped with my credit as co-author.</p>
-        </li>
-      </ol>
+  <section id="ledger" class="wrap section">
+    <div class="section-head" data-rise>
+      <p class="kicker">01 / Evidence</p>
+      <h2>The bugs that don't crash.</h2>
+      <p>Every card is a merged pull request in someone else's repository. Each produced a clean-looking number, and most shipped with a test that fails on <code>main</code>.</p>
+    </div>
+    <div class="grid">
+      <article class="defect tilt">
+        <div class="defect-top"><a class="repo-link" href="https://github.com/UKGovernmentBEIS/inspect_evals/pull/2174">UKGovernmentBEIS/inspect_evals #2174</a><span class="kind kind-eval">eval score</span></div>
+        <h3>A metric with no samples reported 0.0</h3>
+        <div class="diff"><div class="before"><span>before</span><span>accuracy = 0.0</span></div><div class="after"><span>after</span><span>accuracy = nan</span></div></div>
+        <p>Nothing was scored, yet the report showed a model that got everything wrong.</p>
+      </article>
+      <article class="defect tilt">
+        <div class="defect-top"><a class="repo-link" href="https://github.com/ogx-ai/ogx/pull/6415">ogx-ai/ogx #6415</a><span class="kind kind-cost">cost</span></div>
+        <h3>Cached tokens were counted twice</h3>
+        <div class="diff"><div class="before"><span>before</span><span>total = 175</span></div><div class="after"><span>after</span><span>total = 100</span></div></div>
+        <p>The Anthropic-compatible endpoint copied OpenAI's inclusive prompt tokens into Anthropic's exclusive input tokens, then added the cache read on top.</p>
+      </article>
+      <article class="defect tilt">
+        <div class="defect-top"><a class="repo-link" href="https://github.com/truera/trulens/pull/2726">truera/trulens #2726</a><span class="kind kind-eval">eval score</span></div>
+        <h3>The judge's scale was read as its rating</h3>
+        <div class="diff"><div class="before"><span>before</span><span>rating ← "1 to 10"</span></div><div class="after"><span>after</span><span>rating ← verdict</span></div></div>
+        <p>When an LLM judge restated its scale, the parser took a number from the scale instead of the verdict.</p>
+      </article>
+      <article class="defect tilt">
+        <div class="defect-top"><a class="repo-link" href="https://github.com/pydantic/logfire/pull/2162">pydantic/logfire #2162</a><span class="kind kind-cost">cost</span></div>
+        <h3>Bedrock calls were costed at zero</h3>
+        <div class="diff"><div class="before"><span>before</span><span>cost = $0.00</span></div><div class="after"><span>after</span><span>priced under aws</span></div></div>
+        <p>Bedrock calls were priced under the wrong provider, so those calls cost nothing on the dashboard.</p>
+      </article>
+      <article class="defect tilt">
+        <div class="defect-top"><a class="repo-link" href="https://github.com/UKGovernmentBEIS/inspect_evals/pull/2097">UKGovernmentBEIS/inspect_evals #2097</a><span class="kind kind-eval">eval score</span></div>
+        <h3>Truncated reasoning was graded as the answer</h3>
+        <div class="diff"><div class="before"><span>before</span><span>answer ← cut-off thought</span></div><div class="after"><span>after</span><span>answer ← final answer</span></div></div>
+        <p>When output hit its length limit mid-thought, the half-finished reasoning was scored as the response.</p>
+      </article>
+      <article class="defect tilt">
+        <div class="defect-top"><a class="repo-link" href="https://github.com/dbt-labs/metricflow/pull/2114">dbt-labs/metricflow #2114</a><span class="kind kind-eval">metric</span></div>
+        <h3>One metric, two different values</h3>
+        <div class="diff"><div class="before"><span>before</span><span>rate = 0.5 | 0.75</span></div><div class="after"><span>after</span><span>rate = one value</span></div></div>
+        <p>A query reducer re-evaluated a UUID at every reference. A conversion rate read 0.5 alone and 0.75 beside its own input metric.</p>
+      </article>
     </div>
   </section>
 
-  <section id="audit">
-    <div class="wrap">
-      <h2>Two ways in</h2>
-      <p class="note">
-        Both fixed scope, fixed fee, no retainer and no discovery-call theatre. The first tells you
-        whether your numbers are right. The second tells you whether you are <strong>charging your
-        customers</strong> correctly.
-      </p>
-      <div class="cols">
+  <section id="audit" class="wrap section">
+    <div class="section-head" data-rise>
+      <p class="kicker">02 / Audits</p>
+      <h2>Five ways in. All fixed fee.</h2>
+      <p>Fixed scope, fixed fee, no retainer and no discovery-call theatre. Every engagement ends with a check that fails the next time the number goes wrong.</p>
+    </div>
 
-        <div class="slab tier" data-rise>
-          <div class="tier-head">
-            <span class="tier-name">Correctness audit</span>
-            <span class="tier-fig">$5,000</span>
+    <div class="track" data-rise>
+      <div class="track-head">
+        <h3>Is the score right?</h3>
+        <p>For teams whose model choices, launches or safety claims rest on an eval score.</p>
+      </div>
+      <div class="offers">
+        <article class="offer tilt">
+          <div class="offer-top"><svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="11" stroke="rgba(255,255,255,.16)"/><circle cx="18" cy="18" r="7" stroke="#EDEEF0" stroke-width="1.6"/><path d="M23 23l6 6" stroke="#FF7A45" stroke-width="1.8" stroke-linecap="round"/></svg><span class="offer-code">E1 · Audit</span></div>
+          <h4>Eval Integrity Audit</h4>
+          <p class="offer-for">I take the eval suite you already run and check whether its numbers mean what you think they mean.</p>
+          <ul class="ticks">
+            <li>Scorer and metric correctness, including empty denominators</li>
+            <li>LLM-as-judge parsing, scales and failed ratings</li>
+            <li>Truncated output scored as an answer</li>
+            <li>Ground-truth alignment and sample counts</li>
+          </ul>
+          <div class="offer-foot">
+            <span class="label">You get</span>
+            <span class="get">A findings report with the real numbers, a fix for each, and a regression test.</span>
+            <span class="price">From $5,000 · fixed fee</span>
+            <a class="text-link" href="mailto:arthi1805@gmail.com?subject=Eval%20integrity%20audit">Ask about this audit</a>
           </div>
-          <p class="tier-for">For teams whose reported LLM spend doesn't match the provider invoice.</p>
+        </article>
+        <article class="offer offer-hi tilt">
+          <div class="offer-top"><svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="11" stroke="rgba(255,255,255,.16)"/><path d="M12 26l8-14 8 14z" stroke="#EDEEF0" stroke-width="1.6" stroke-linejoin="round"/><circle cx="20" cy="22" r="2" fill="#FF7A45"/></svg><span class="offer-code">E2 · Build</span></div>
+          <h4>Eval Suite Build</h4>
+          <p class="offer-for">Evals designed around your product's real failure modes, not a leaderboard's.</p>
+          <ul class="ticks">
+            <li>Ground-truth datasets and scoring rubrics</li>
+            <li>LLM judges whose parsing fails closed</li>
+            <li>Built on inspect_evals, lm-evaluation-harness, TruLens or your stack</li>
+            <li>Metrics that say nan, not 0.0, when nothing was measured</li>
+          </ul>
+          <div class="offer-foot">
+            <span class="label">You get</span>
+            <span class="get">A working eval suite in your repo, documented, with a baseline run.</span>
+            <span class="price">From $10,000 · fixed fee</span>
+            <a class="text-link" href="mailto:arthi1805@gmail.com?subject=Eval%20suite%20build">Ask about a build</a>
+          </div>
+        </article>
+        <article class="offer tilt">
+          <div class="offer-top"><svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="11" stroke="rgba(255,255,255,.16)"/><path d="M11 14h10M11 20h18M11 26h7" stroke="#EDEEF0" stroke-width="1.6" stroke-linecap="round"/><path d="M23 24l6 6M29 24l-6 6" stroke="#FF7A45" stroke-width="1.8" stroke-linecap="round"/></svg><span class="offer-code">E3 · Gate</span></div>
+          <h4>Agent Regression Gates</h4>
+          <p class="offer-for">Catch the agent run that quietly stopped calling a tool, before your users do.</p>
+          <ul class="ticks">
+            <li>Run diffs by tool calls, arguments, outputs, latency and cost</li>
+            <li>Imports from JSONL, OpenTelemetry, Langfuse and LangSmith</li>
+            <li>A GitHub Action that breaks CI on the gates you choose</li>
+            <li><span>Built on <a class="text-link" href="https://github.com/arthi-arumugam-git/whatbroke">whatbroke</a>, my open-source run-diffing CLI</span></li>
+          </ul>
+          <div class="offer-foot">
+            <span class="label">You get</span>
+            <span class="get">Gates live in your CI, tuned to your agents, with a runbook for your team.</span>
+            <span class="price">From $5,000 · fixed fee</span>
+            <a class="text-link" href="mailto:arthi1805@gmail.com?subject=Agent%20regression%20gates">Ask about gates</a>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <div class="track" data-rise>
+      <div class="track-head">
+        <h3>Is the bill right?</h3>
+        <p>For teams whose reported spend doesn't match the invoice, and products that bill their own customers by usage.</p>
+      </div>
+      <div class="offers">
+        <article class="offer tilt">
+          <div class="offer-top"><svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="11" stroke="rgba(255,255,255,.16)"/><path d="M13 11h14v18l-3.5-2-3.5 2-3.5-2-3.5 2z" stroke="#EDEEF0" stroke-width="1.6" stroke-linejoin="round"/><path d="M17 17h6M17 21h4" stroke="#FF7A45" stroke-width="1.8" stroke-linecap="round"/></svg><span class="offer-code">C1 · Reconcile</span></div>
+          <h4>Cost Reconciliation Audit</h4>
+          <p class="offer-for">For teams whose reported LLM spend doesn't match the provider invoice.</p>
           <ul class="ticks">
             <li>Every provider adapter in your path, and whether its usage object is read whole</li>
             <li>Cache-token conventions, which differ per provider and are routinely mixed</li>
             <li>Streaming paths, where accumulated usage is overwritten by a final delta</li>
-            <li>Eval scorers: empty denominators, truncated output scored as an answer</li>
+            <li>Retries that are billed but never logged, and stale pricing tables</li>
             <li>OpenTelemetry spans, so usage survives the trip to the dashboard</li>
-            <li><strong>You get:</strong> a reconciliation report, pull requests each carrying a test that fails before the fix, and a CI gate</li>
           </ul>
-        </div>
-
-        <div class="slab tier tier-hi" data-rise>
-          <div class="tier-head">
-            <span class="tier-name">Revenue assurance</span>
-            <span class="tier-fig">$10,000</span>
+          <div class="offer-foot">
+            <span class="label">You get</span>
+            <span class="get">A reconciliation report against your invoice, pull requests each carrying a test that fails before the fix, and a CI gate.</span>
+            <span class="price">From $5,000 · fixed fee</span>
+            <a class="text-link" href="mailto:arthi1805@gmail.com?subject=Cost%20reconciliation%20audit">Ask about reconciliation</a>
           </div>
-          <p class="tier-for">For products that <strong>bill customers by usage</strong> — per token, per credit, per call.</p>
+        </article>
+        <article class="offer offer-hi tilt">
+          <div class="offer-top"><svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="11" stroke="rgba(255,255,255,.16)"/><path d="M11 27V13M11 27h18" stroke="#EDEEF0" stroke-width="1.6" stroke-linecap="round"/><path d="M14 23l4-4 3 3 6-7" stroke="#FF7A45" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="offer-code">C2 · Assure</span></div>
+          <h4>Revenue Assurance</h4>
+          <p class="offer-for">For products that <strong>bill customers by usage</strong>: per token, per credit, per call.</p>
           <ul class="ticks">
             <li>Metered consumption against what you actually invoiced, customer by customer</li>
             <li>Under-billing, which is revenue you already earned and never charged for</li>
             <li>Over-billing, which is refund liability and a trust event waiting to happen</li>
             <li>Cost basis against your own provider invoices, so per-customer margin is real</li>
             <li>Rating logic: tiers, minimums, overages, credits, free-tier boundaries</li>
-            <li><strong>You get:</strong> a signed reconciliation you can hand a CFO, board or acquirer, the recovery figure in your own numbers, and the CI gate</li>
           </ul>
-        </div>
-
+          <div class="offer-foot">
+            <span class="label">You get</span>
+            <span class="get">A signed reconciliation you can hand a CFO, board or acquirer, the recovery figure in your own numbers, and the CI gate.</span>
+            <span class="price">$10,000 · fixed fee</span>
+            <a class="text-link" href="mailto:arthi1805@gmail.com?subject=Revenue%20assurance">Ask about revenue assurance</a>
+          </div>
+        </article>
       </div>
-      <p class="note" style="margin-top:2rem">
-        Revenue assurance is a mature discipline in telecom, invented because metered billing at volume
-        goes silently wrong and costs a fortune. AI products have identical exposure and almost no
-        practice around it. I ran the regulated version: monthly filings across 8 US states, reconstructed
-        from 18 months of history, zero regulatory failures.
-      </p>
+      <p class="services-note">Revenue assurance is a mature discipline in telecom, invented because metered billing at volume goes silently wrong and costs a fortune. AI products have identical exposure and almost no practice around it. I ran the regulated version: monthly filings across 8 US states, reconstructed from 18 months of history, zero regulatory failures.</p>
     </div>
   </section>
 
-  <section id="record">
-    <div class="wrap">
-      <h2>The record</h2>
-      <p class="note">
-        24 substantive merged pull requests across 13 organisations, nearly all one defect
-        class. Verifiable on <a href="https://github.com/arthi-arumugam-git">GitHub</a>.
-      </p>
-      <ul class="orgs">
-        <li>UK AI Security Inst. <span>8</span></li>
-        <li>Snowflake <span class="muted">TruLens · 3</span></li>
-        <li>EleutherAI <span class="muted">lm-eval-harness</span></li>
-        <li>Pydantic <span class="muted">Logfire</span></li>
-        <li>dbt Labs <span class="muted">MetricFlow</span></li>
-        <li>Mistral AI <span class="muted">mistral-common</span></li>
-        <li>LiveKit <span class="muted">agents</span></li>
-        <li>Pipecat <span class="muted">Daily</span></li>
-        <li>deepset <span class="muted">Haystack</span></li>
-        <li>Roboflow <span class="muted">2</span></li>
-        <li>mcp-use <span class="muted">agent</span></li>
-        <li>ogx <span class="muted">ex-Llama Stack</span></li>
-        <li>respan <span class="muted">vertexai</span></li>
-      </ul>
-      <p class="note">
-        Day to day I build and operate data pipelines on BigQuery at Lumen, where query
-        optimisation cut bytes scanned per query by <strong>94%</strong> — 565&nbsp;MB to 35&nbsp;MB —
-        and where I own monthly regulated filings across 8 US states. That is where I got fussy
-        about numbers that are wrong while nothing fails.
-      </p>
+  <section id="proof" class="wrap section">
+    <div class="proof">
+      <div class="proof-copy" data-rise>
+        <p class="kicker">03 / The record</p>
+        <h2>Merged where the industry measures itself.</h2>
+        <p>26 pull requests merged across 14 organisations, nearly all one defect class: a score, a token count or a cost that came out wrong while nothing raised. Every one is public.</p>
+        <a class="text-link" href="https://github.com/arthi-arumugam-git/wrong-numbers">See the full index of findings →</a>
+        <ul class="chips" aria-label="Organisations with merged fixes">
+          <li>UK AI Security Inst. <span>8</span></li>
+          <li>Snowflake <span>TruLens · 4</span></li>
+          <li>EleutherAI <span>lm-eval-harness</span></li>
+          <li>Pydantic <span>Logfire · genai-prices</span></li>
+          <li>dbt Labs <span>MetricFlow</span></li>
+          <li>Mistral AI</li>
+          <li>LiveKit</li>
+          <li>Pipecat</li>
+          <li>deepset <span>Haystack</span></li>
+          <li>Roboflow <span>2</span></li>
+          <li>mcp-use</li>
+          <li>ogx <span>ex-Llama Stack</span></li>
+          <li>respan</li>
+          <li>Unsloth</li>
+        </ul>
+        <div class="notes">
+          <div class="note-card"><span class="tag">CREDITED</span><p>Co-author credit on OpenAI's Agents SDK fix for <code>responses.compact</code> calls that were billed but left out of run totals. I reported it and wrote the first fix.</p></div>
+          <div class="note-card"><span class="tag">ACCEPTED</span><p>NVIDIA NeMo Evaluator accepted my design for failing closed on unscored samples, and asked me to build it.</p></div>
+          <div class="note-card"><span class="tag">CO-WROTE</span><p>inspect_evals' convention for what a metric reports when its denominator is empty.</p></div>
+        </div>
+      </div>
+
+      <div class="ledger-wrap">
+        <div class="ledger">
+          <div class="ledger-track">
+            <ol aria-label="Selected merged pull requests">
+              <li><span class="date">2026-07-30</span><span class="what"><span class="repo">pipecat-ai/pipecat #5163</span><a class="title" href="https://github.com/pipecat-ai/pipecat/pull/5163">Count cached input tokens in total_tokens for Anthropic and Bedrock</a></span><span class="merged">merged</span></li>
+              <li><span class="date">2026-07-31</span><span class="what"><span class="repo">UKGovernmentBEIS/inspect_evals #2036</span><a class="title" href="https://github.com/UKGovernmentBEIS/inspect_evals/pull/2036">Restore the denominator on confidence and apologize_rate</a></span><span class="merged">merged</span></li>
+              <li><span class="date">2026-08-02</span><span class="what"><span class="repo">livekit/agents #6663</span><a class="title" href="https://github.com/livekit/agents/pull/6663">Count cached tokens in Bedrock's prompt_tokens</a></span><span class="merged">merged</span></li>
+              <li><span class="date">2026-08-04</span><span class="what"><span class="repo">deepset-ai/haystack-core-integrations #3717</span><a class="title" href="https://github.com/deepset-ai/haystack-core-integrations/pull/3717">Include cached tokens in the OpenAI-compatible prompt_tokens</a></span><span class="merged">merged</span></li>
+              <li><span class="date">2026-08-07</span><span class="what"><span class="repo">UKGovernmentBEIS/inspect_evals #2097</span><a class="title" href="https://github.com/UKGovernmentBEIS/inspect_evals/pull/2097">Stop scoring truncated reasoning as the model's answer</a></span><span class="merged">merged</span></li>
+              <li><span class="date">2026-08-18</span><span class="what"><span class="repo">mcp-use/mcp-use #2127</span><a class="title" href="https://github.com/mcp-use/mcp-use/pull/2127">Count Anthropic cache tokens and stop message_delta erasing usage</a></span><span class="merged">merged</span></li>
+              <li><span class="date">2026-08-19</span><span class="what"><span class="repo">UKGovernmentBEIS/inspect_evals #2123</span><a class="title" href="https://github.com/UKGovernmentBEIS/inspect_evals/pull/2123">Stop reporting a stereotype score built from samples that were never scored</a></span><span class="merged">merged</span></li>
+              <li><span class="date">2026-08-19</span><span class="what"><span class="repo">ogx-ai/ogx #6415</span><a class="title" href="https://github.com/ogx-ai/ogx/pull/6415">Stop counting cached tokens twice in the Anthropic-compat usage</a></span><span class="merged">merged</span></li>
+              <li><span class="date">2026-08-21</span><span class="what"><span class="repo">UKGovernmentBEIS/inspect_evals #2174</span><a class="title" href="https://github.com/UKGovernmentBEIS/inspect_evals/pull/2174">Return nan rather than 0.0 when a metric has no samples</a></span><span class="merged">merged</span></li>
+              <li><span class="date">2026-08-24</span><span class="what"><span class="repo">dbt-labs/metricflow #2114</span><a class="title" href="https://github.com/dbt-labs/metricflow/pull/2114">Keep non-deterministic expressions materialized in the sub-query reducer</a></span><span class="merged">merged</span></li>
+              <li><span class="date">2026-08-25</span><span class="what"><span class="repo">truera/trulens #2726</span><a class="title" href="https://github.com/truera/trulens/pull/2726">Stop reading a judge's stated scale as its rating</a></span><span class="merged">merged</span></li>
+              <li><span class="date">2026-08-27</span><span class="what"><span class="repo">pydantic/logfire #2162</span><a class="title" href="https://github.com/pydantic/logfire/pull/2162">Price Bedrock calls under the aws provider</a></span><span class="merged">merged</span></li>
+              <li><span class="date">2026-08-31</span><span class="what"><span class="repo">EleutherAI/lm-evaluation-harness #4068</span><a class="title" href="https://github.com/EleutherAI/lm-evaluation-harness/pull/4068">Report a sample count that does not depend on metric order</a></span><span class="merged">merged</span></li>
+              <li><span class="date">2026-09-15</span><span class="what"><span class="repo">truera/trulens #2748</span><a class="title" href="https://github.com/truera/trulens/pull/2748">Refuse a score list that does not match the labels in recall and precision</a></span><span class="merged">merged</span></li>
+            </ol>
+            <ul class="dupe" aria-hidden="true">
+              <li><span class="date">2026-07-30</span><span class="what"><span class="repo">pipecat-ai/pipecat #5163</span><span class="title">Count cached input tokens in total_tokens for Anthropic and Bedrock</span></span><span class="merged">merged</span></li>
+              <li><span class="date">2026-07-31</span><span class="what"><span class="repo">UKGovernmentBEIS/inspect_evals #2036</span><span class="title">Restore the denominator on confidence and apologize_rate</span></span><span class="merged">merged</span></li>
+              <li><span class="date">2026-08-02</span><span class="what"><span class="repo">livekit/agents #6663</span><span class="title">Count cached tokens in Bedrock's prompt_tokens</span></span><span class="merged">merged</span></li>
+              <li><span class="date">2026-08-04</span><span class="what"><span class="repo">deepset-ai/haystack-core-integrations #3717</span><span class="title">Include cached tokens in the OpenAI-compatible prompt_tokens</span></span><span class="merged">merged</span></li>
+              <li><span class="date">2026-08-07</span><span class="what"><span class="repo">UKGovernmentBEIS/inspect_evals #2097</span><span class="title">Stop scoring truncated reasoning as the model's answer</span></span><span class="merged">merged</span></li>
+              <li><span class="date">2026-08-18</span><span class="what"><span class="repo">mcp-use/mcp-use #2127</span><span class="title">Count Anthropic cache tokens and stop message_delta erasing usage</span></span><span class="merged">merged</span></li>
+              <li><span class="date">2026-08-19</span><span class="what"><span class="repo">UKGovernmentBEIS/inspect_evals #2123</span><span class="title">Stop reporting a stereotype score built from samples that were never scored</span></span><span class="merged">merged</span></li>
+              <li><span class="date">2026-08-19</span><span class="what"><span class="repo">ogx-ai/ogx #6415</span><span class="title">Stop counting cached tokens twice in the Anthropic-compat usage</span></span><span class="merged">merged</span></li>
+              <li><span class="date">2026-08-21</span><span class="what"><span class="repo">UKGovernmentBEIS/inspect_evals #2174</span><span class="title">Return nan rather than 0.0 when a metric has no samples</span></span><span class="merged">merged</span></li>
+              <li><span class="date">2026-08-24</span><span class="what"><span class="repo">dbt-labs/metricflow #2114</span><span class="title">Keep non-deterministic expressions materialized in the sub-query reducer</span></span><span class="merged">merged</span></li>
+              <li><span class="date">2026-08-25</span><span class="what"><span class="repo">truera/trulens #2726</span><span class="title">Stop reading a judge's stated scale as its rating</span></span><span class="merged">merged</span></li>
+              <li><span class="date">2026-08-27</span><span class="what"><span class="repo">pydantic/logfire #2162</span><span class="title">Price Bedrock calls under the aws provider</span></span><span class="merged">merged</span></li>
+              <li><span class="date">2026-08-31</span><span class="what"><span class="repo">EleutherAI/lm-evaluation-harness #4068</span><span class="title">Report a sample count that does not depend on metric order</span></span><span class="merged">merged</span></li>
+              <li><span class="date">2026-09-15</span><span class="what"><span class="repo">truera/trulens #2748</span><span class="title">Refuse a score list that does not match the labels in recall and precision</span></span><span class="merged">merged</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
-  <section id="faq">
-    <div class="wrap">
-      <h2>Symptoms</h2>
+  <section id="process" class="wrap section">
+    <div class="section-head" data-rise>
+      <p class="kicker">04 / How it runs</p>
+      <h2>Explain the number before changing it.</h2>
+    </div>
+    <ol class="steps">
+      <li class="tilt"><span class="n">01</span><span class="t">Reproduce</span><span class="d">Hold the model, prompts and tool schemas constant, and rerun until every number is accounted for, against a known-answer test or your provider's invoice.</span></li>
+      <li class="tilt"><span class="n">02</span><span class="t">Measure</span><span class="d">A baseline noise check first, then the real numbers, with the limits of the measurement written down.</span></li>
+      <li class="tilt"><span class="n">03</span><span class="t">Fix</span><span class="d">A pull request for each finding, with a test that fails on the old behaviour and passes on the new.</span></li>
+      <li class="tilt"><span class="n">04</span><span class="t">Gate</span><span class="d">Checks wired into CI, so the next wrong number fails the build instead of reaching a decision or an invoice.</span></li>
+    </ol>
+  </section>
 
+  <section id="faq" class="wrap section">
+    <div class="section-head" data-rise>
+      <p class="kicker">05 / Symptoms</p>
+      <h2>What you see, and what usually causes it.</h2>
+    </div>
+    <div class="faq">
       <details open>
         <summary>My Anthropic bill beats my dashboard</summary>
-        <p>
-          Cached tokens, usually. Anthropic reports <code>cache_read_input_tokens</code> and
-          <code>cache_creation_input_tokens</code> separately from <code>input_tokens</code>.
-          Libraries that sum only input and output silently omit cache activity, so every
-          cached request under-reports itself. Found and fixed in Pipecat, LiveKit, mcp-use,
-          Haystack and Llama Stack.
-          <a href="/articles/anthropic-cache-tokens-not-counted/">Full write-up →</a>
-        </p>
+        <p>Cached tokens, usually. Anthropic reports <code>cache_read_input_tokens</code> and <code>cache_creation_input_tokens</code> separately from <code>input_tokens</code>. Libraries that sum only input and output silently omit cache activity, so every cached request under-reports itself. Found and fixed in Pipecat, LiveKit, mcp-use, Haystack and Llama Stack. The other three recurring causes are a stale pricing table, streaming code that overwrites accumulated usage with the final <code>message_delta</code>, and failed-then-retried calls that are billed but not logged. <a href="/articles/anthropic-cache-tokens-not-counted/">Full write-up →</a></p>
       </details>
-
       <details>
         <summary>My eval score reads 0.0 instead of failing</summary>
-        <p>
-          An empty denominator. When a metric measures nothing, dividing by zero samples is
-          often guarded by returning <code>0.0</code> rather than <code>nan</code>. But 0.0 is
-          indistinguishable from a model that genuinely scored zero, so the run looks complete
-          and the number is wrong. Reporting <code>nan</code> makes it raise.
-        </p>
+        <p>An empty denominator. When a metric measures nothing, dividing by zero samples is often guarded by returning <code>0.0</code> rather than <code>nan</code>. But 0.0 is indistinguishable from a model that genuinely scored zero, so the run looks complete and the number is wrong. Reporting <code>nan</code> makes it raise.</p>
       </details>
-
       <details>
         <summary>The same metric differs between queries</summary>
-        <p>
-          Usually non-determinism inside a query reducer. If an expression is re-evaluated at
-          every reference rather than materialised once, rows that should group together don't,
-          and any de-duplication downstream keeps exactly what it exists to remove.
-        </p>
+        <p>Usually non-determinism inside a query reducer. If an expression is re-evaluated at every reference rather than materialised once, rows that should group together don't, and any de-duplication downstream keeps exactly what it exists to remove.</p>
       </details>
-
       <details>
-        <summary>Where are you based, and how does this work remotely?</summary>
-        <p>
-          Bengaluru, IST. The engagement is deliverable-based and async-first — your repos, your
-          invoices, a written reconciliation — with a kickoff and a findings call scheduled in the
-          overlap: all of the UK/EU working day, US East until midday. Every merged fix on this
-          page shipped from here into US, UK and EU codebases. Invoices in USD.
-        </p>
+        <summary>How do I check my own stack in ten minutes?</summary>
+        <p>Send one request with a known cache hit and compare three numbers: what your metering recorded, what the provider's usage object returned, and what the provider's cost report shows for that day. If the three disagree, the direction of the gap names the defect. <a href="https://arthi-arumugam-git.github.io/billproof/">billproof</a> does this comparison automatically for Claude Code, Codex and Gemini CLI transcripts.</p>
       </details>
-
+      <details>
+        <summary>What is an LLM cost reconciliation audit?</summary>
+        <p>A fixed-price review of the code that turns model usage into dollars, checked against the provider's own invoice or usage report. The deliverable is a set of failing tests, one per defect, each with the fix. It starts from $5,000 for a codebase; revenue assurance, for a product that bills its own customers per token, is $10,000.</p>
+      </details>
       <details>
         <summary>We bill customers by usage. Why does this matter?</summary>
-        <p>
-          Because the same defect that makes your dashboard wrong makes your invoices wrong. If your
-          metering under-counts, you are giving away revenue you already earned. If it over-counts,
-          you have refund liability and a trust problem. And if your cost basis is wrong, per-customer
-          margin is fiction — so every pricing decision rests on a number nobody verified.
-        </p>
+        <p>Because the same defect that makes your dashboard wrong makes your invoices wrong. If your metering under-counts, you are giving away revenue you already earned. If it over-counts, you have refund liability and a trust problem. And if your cost basis is wrong, per-customer margin is fiction, so every pricing decision rests on a number nobody verified.</p>
       </details>
-
       <details>
         <summary>We have a data team. Why bring someone in?</summary>
-        <p>
-          Because this defect class never surfaces as an incident. Nothing pages, no test goes
-          red, and the number stays plausible — so it is never anyone's top priority until it
-          shows up as an invoice or a published benchmark that will not reproduce.
-        </p>
+        <p>Because this defect class never surfaces as an incident. Nothing pages, no test goes red, and the number stays plausible, so it is never anyone's top priority until it shows up as an invoice or a published benchmark that will not reproduce.</p>
+      </details>
+      <details>
+        <summary>Where are you based, and how does this work remotely?</summary>
+        <p>Bengaluru, IST. The engagement is deliverable-based and async-first: your repos, your invoices, a written reconciliation, with a kickoff and a findings call scheduled in the overlap, which is all of the UK/EU working day and US East until midday. Every merged fix on this page shipped from here into US, UK and EU codebases. Invoices in USD.</p>
       </details>
     </div>
   </section>
 
-
-  <section id="answers">
-    <div class="wrap">
-      <h2>Straight answers</h2>
-      <dl>
-    <dt>Why is my Anthropic bill higher than my dashboard says?</dt>
-    <dd>In the cases Arthi Arumugam has fixed upstream, the most common cause is that cached tokens were never counted: Anthropic reports cache_read_input_tokens and cache_creation_input_tokens outside input_tokens, so a counter that sums only input and output tokens under-reports every cached request. The other three recurring causes are a stale pricing table, streaming code that overwrites accumulated usage with the final message_delta, and failed-then-retried calls that are billed but not logged.</dd>
-    <dt>What is an LLM cost reconciliation audit?</dt>
-    <dd>A fixed-price review of the code that turns model usage into dollars, checked against the provider&#x27;s own invoice or usage report. The deliverable is a set of failing tests, one per defect, each with the fix. Wrong Numbers charges from $5,000 for a codebase and $10,000 for revenue assurance on a product that bills its own customers per token.</dd>
-    <dt>How do I check my own stack in ten minutes?</dt>
-    <dd>Send one request with a known cache hit and compare three numbers: what your metering recorded, what the provider&#x27;s usage object returned, and what the provider&#x27;s cost report shows for that day. If the three disagree, the direction of the gap names the defect. billproof does this comparison automatically for Claude Code, Codex and Gemini CLI transcripts.</dd>
-    <dt>Who does the work?</dt>
-    <dd>Arthi Arumugam, an AI engineer in Bengaluru with 24 merged upstream fixes in LLM cost and token accounting across inspect_evals (UK AI Security Institute), TruLens (Snowflake), lm-evaluation-harness, Pydantic Logfire and genai-prices, Mistral, LiveKit, Pipecat, deepset, Roboflow and LiteLLM. Every fix is a public pull request linked from this page.</dd>
-  </dl>
+  <section id="field-guide" class="wrap section">
+    <div class="guide" data-rise>
+      <div class="book-stage">
+        <div class="book" role="img" aria-label="Book cover: Wrong Numbers, a field guide by Arthi Arumugam">
+          <div class="book-front">
+            <span class="book-kicker">A FIELD GUIDE</span>
+            <div><div class="book-zero">0.0</div><div class="book-title">Wrong<span>Numbers</span></div></div>
+            <span class="book-author">Arthi Arumugam</span>
+          </div>
+          <div class="book-spine"><span>WRONG NUMBERS</span></div>
+          <div class="book-pages"></div>
+          <div class="book-back"></div>
+        </div>
+      </div>
+      <div class="guide-copy">
+        <p class="kicker">06 / The field guide</p>
+        <h2>One bug class, documented case by case.</h2>
+        <p>Wrong Numbers is a public field guide to eval scores, token counts and costs that come out wrong while nothing raises: 31 long-form write-ups, each reproduced against an installed package, sorted into thirteen recurring shapes, each with the question that finds it.</p>
+        <div class="actions">
+          <a class="btn btn-light" href="mailto:arthi1805@gmail.com?subject=Wrong%20Numbers%20book">Request a copy of the book</a>
+          <a class="btn btn-ghost" href="https://github.com/arthi-arumugam-git/wrong-numbers">Read the field guide</a>
+        </div>
+        <ul class="articles" aria-label="Defect notes">
+          <li><a href="/articles/claude-bill-higher-than-dashboard/">Why your Claude bill is higher than your dashboard</a></li>
+          <li><a href="/articles/anthropic-cache-tokens-not-counted/">Anthropic cache tokens are not in total_tokens</a></li>
+          <li><a href="/articles/openai-prompt-tokens-vs-anthropic-input-tokens/">OpenAI prompt_tokens vs Anthropic input_tokens</a></li>
+          <li><a href="/articles/streaming-message-delta-erases-token-usage/">Streaming message_delta erases accumulated usage</a></li>
+        </ul>
+      </div>
     </div>
   </section>
 
-  <section id="reading">
-    <div class="wrap">
-      <h2>Defect notes</h2>
-      <p class="note">Each one is a bug I have found and fixed in production libraries, written up in full.</p>
-      <ul class="orgs">
-        <li data-rise><a href="/articles/claude-bill-higher-than-dashboard/">Why your Claude bill is higher than your dashboard</a></li>
-        <li data-rise><a href="/articles/anthropic-cache-tokens-not-counted/">Anthropic cache tokens are not in total_tokens</a></li>
-        <li data-rise><a href="/articles/openai-prompt-tokens-vs-anthropic-input-tokens/">OpenAI prompt_tokens vs Anthropic input_tokens</a></li>
-        <li data-rise><a href="/articles/streaming-message-delta-erases-token-usage/">Streaming message_delta erases accumulated usage</a></li>
-      </ul>
+  <section id="about" class="wrap section">
+    <div class="about">
+      <div class="monogram-stage" aria-hidden="true">
+        <div class="monogram">
+          <div class="monogram-mark">A<span>A</span></div>
+          <div class="monogram-meta"><strong>Arthi Arumugam</strong><span>Bengaluru · IST</span><span>Invoices in USD</span></div>
+        </div>
+      </div>
+      <div class="about-copy" data-rise>
+        <p class="kicker">07 / Who does the work</p>
+        <h2>Arthi Arumugam</h2>
+        <p>AI engineer with a data engineering foundation. Day to day I build and operate data pipelines on BigQuery at Lumen, where I shipped a production agentic system on Vertex AI with structured-output validation as a hard gate, and own monthly regulated filings across 8 US states. That is where I got fussy about numbers that are wrong while nothing fails.</p>
+        <dl class="facts">
+          <div><dt>Evaluation</dt><dd>inspect_evals, lm-evaluation-harness, TruLens, LLM-as-judge, ground-truth evaluation</dd></div>
+          <div><dt>Cost &amp; usage</dt><dd>Token and cache accounting across OpenAI, Anthropic, Gemini and Bedrock; OpenTelemetry, Langfuse, LangSmith</dd></div>
+          <div><dt>Open source</dt><dd><a class="text-link" href="https://github.com/arthi-arumugam-git/whatbroke">whatbroke</a> · <a class="text-link" href="https://github.com/arthi-arumugam-git/cachecheck">cachecheck</a> · <a class="text-link" href="https://arthi-arumugam-git.github.io/billproof/">billproof</a> · <a class="text-link" href="https://github.com/arthi-arumugam-git/costctl">costctl</a></dd></div>
+          <div><dt>Certified</dt><dd>Google Cloud Professional Data Engineer · Azure Data Engineer Associate · Microsoft Fabric Data Engineer Associate</dd></div>
+          <div><dt>Education</dt><dd>M.Sc. Management, Queen Mary University of London · B.Tech Information Technology, Anna University</dd></div>
+        </dl>
+      </div>
     </div>
   </section>
 
-  <section class="close">
-    <div class="wrap">
-      <h2>One of them is lying.</h2>
-      <p>
-        If your reported spend and your provider invoice disagree, one of them is wrong. Tell me
-        which providers and libraries sit in your path and I'll tell you where to look first —
-        before you engage me.
-      </p>
-      <a class="cta" href="mailto:arthi1805@gmail.com?subject=Cost%20reconciliation%20audit">arthi1805@gmail.com</a>
+  <section id="contact" class="wrap section" style="padding-bottom: clamp(80px, 10vw, 140px)">
+    <div class="close" data-rise>
+      <div class="close-copy">
+        <h2>Send me an eval, or an invoice.<span class="dimmed">I'll tell you if the <span class="accent">number</span> is right.</span></h2>
+        <p>Tell me which providers, libraries and eval harnesses sit in your path and I'll tell you where to look first, before you engage me.</p>
+        <div class="actions">
+          <a class="btn btn-accent" href="mailto:arthi1805@gmail.com?subject=Audit%20enquiry">arthi1805@gmail.com<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="#0A0B0E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+          <a class="btn btn-ghost" href="https://www.linkedin.com/in/arthi-arumugam-ai-engineer">Message on LinkedIn</a>
+        </div>
+      </div>
+      <div class="gyro-stage" aria-hidden="true"><div class="gyro"><i></i><i></i><i></i><i></i><b></b></div></div>
     </div>
   </section>
 
 </main>
 
-<footer>
-  <p>Wrong Numbers — Arthi Arumugam</p>
-  <p>Bengaluru · IST</p>
-  <p><a href="https://github.com/arthi-arumugam-git">GitHub</a> · <a href="mailto:arthi1805@gmail.com">Email</a></p>
+<footer class="wrap foot">
+  <p>Wrong Numbers — Arthi Arumugam · Bengaluru · IST</p>
+  <nav aria-label="Footer">
+    <a href="https://github.com/arthi-arumugam-git">GitHub</a>
+    <a href="https://www.linkedin.com/in/arthi-arumugam-ai-engineer">LinkedIn</a>
+    <a href="/feed.xml">RSS</a>
+    <a href="mailto:arthi1805@gmail.com">Email</a>
+  </nav>
 </footer>
 
-<script>
-  (function () {
-    var btn = document.getElementById("theme");
-    btn.addEventListener("click", function () {
-      var cur = document.documentElement.getAttribute("data-theme");
-      if (!cur) cur = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-      var next = cur === "dark" ? "light" : "dark";
-      document.documentElement.setAttribute("data-theme", next);
-      try { localStorage.setItem("theme", next); } catch (e) {}
-    });
-  })();
-</script>
+<script src="/home.js" defer></script>
 <script src="/anim.js" defer></script>
 </body>
 </html>
