@@ -374,6 +374,8 @@ code { font-family: var(--mono); font-size: .9em; }
 .screen:hover { border-color: rgba(255, 255, 255, .3); }
 video.loop { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
 .guide-film video.loop { aspect-ratio: 1 / 1; }
+/* phones get the square cut of the film (see the <source media> in index.html) */
+@media (max-width: 680px) { .film-frame video.loop { aspect-ratio: 1 / 1; } }
 .loop-toggle {
   position: absolute; right: 14px; bottom: 14px; z-index: 1;
   display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px;

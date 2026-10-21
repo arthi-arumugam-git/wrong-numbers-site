@@ -353,6 +353,13 @@
   $$("video.loop").forEach(function (video) {
     var screen = video.parentNode, button = $(".loop-toggle", screen), label = button && $("span", button);
     var heldByUser = reduce;
+    // Phones get the square cut. Drop any <source> whose media query does not match, so a
+    // browser that ignores media on video sources cannot load the phone cut on a desktop.
+    $$("source[media]", video).forEach(function (source) {
+      if (!matchMedia(source.media).matches) source.remove();
+    });
+    var phonePoster = video.getAttribute("data-poster-phone");
+    if (phonePoster && matchMedia("(max-width: 680px)").matches) video.poster = phonePoster;
     function sync() {
       screen.classList.toggle("is-paused", video.paused);
       if (!button) return;
