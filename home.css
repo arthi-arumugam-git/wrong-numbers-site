@@ -1,4 +1,4 @@
-/* Homepage only. Articles keep /styles.css. */
+/* Homepage only. Articles use /article.css, which mirrors the tokens, top bar and footer here. */
 
 :root {
   --paper: #EEEDE9;

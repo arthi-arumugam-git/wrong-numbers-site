@@ -14,17 +14,12 @@
 <meta property="og:description" content="Why your reported LLM cost reads low, where the bug lives, and how to check your own stack in ten minutes.">
 <meta name="twitter:card" content="summary_large_image">
 
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap">
-<link rel="stylesheet" href="/styles.css">
-
-<script>
-  try {
-    var t = localStorage.getItem("theme");
-    if (t) document.documentElement.setAttribute("data-theme", t);
-  } catch (e) {}
-</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&family=Geist+Mono:wght@400..700&display=swap">
+<link rel="stylesheet" href="/article.css">
 
 <script type="application/ld+json">
 {
@@ -47,15 +42,21 @@
 
 <body>
 <a class="skip" href="#main">Skip to content</a>
+<div class="progress" aria-hidden="true"><span></span></div>
 
-<header class="topbar">
-  <a class="wordmark" href="/">Wrong&nbsp;Numbers</a>
-  <nav aria-label="Primary">
+<header class="bar">
+  <a class="bar-mark" href="/" aria-label="Wrong Numbers, home">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true"><path d="M5 11h18M5 17h18" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"/><path d="M17.5 4.5l-7 19" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"/></svg>
+    <span>Wrong Numbers</span>
+  </a>
+  <nav class="bar-nav" aria-label="Primary">
     <a href="/#ledger">Evidence</a>
-    <a href="/#audit">The audit</a>
-    <a class="cta-sm" href="mailto:arthi1805@gmail.com?subject=Cost%20reconciliation%20audit">Get in touch</a>
-    <button id="theme" type="button" aria-label="Toggle colour theme">◐</button>
+    <a href="/#audit">Audits</a>
+    <a href="/#proof">Record</a>
+    <a href="/#method">Method</a>
+    <a href="/#faq">FAQ</a>
   </nav>
+  <a class="bar-cta" href="mailto:arthi1805@gmail.com?subject=Audit%20enquiry">Book an audit</a>
 </header>
 
 <main id="main">
@@ -200,22 +201,39 @@
 <section id="sources"><h2>Sources</h2><p>Field names and billing rules above are taken from the provider documentation, read on 2 September 2026:</p><ul><li><a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching">https://platform.claude.com/docs/en/build-with-claude/prompt-caching</a></li><li><a href="https://platform.claude.com/docs/en/about-claude/pricing">https://platform.claude.com/docs/en/about-claude/pricing</a></li></ul><p>The fixes referenced are public pull requests; the full list is on <a href="https://wrong-numbers.dev/#ledger">the evidence ledger</a>.</p></section>
 </main>
 
-<footer>
-  <p><strong>Wrong Numbers</strong> &middot; Arthi Arumugam &middot; Bengaluru, India (IST, UTC+5:30)</p>
-  <p><a href="https://github.com/arthi-arumugam-git">GitHub</a> &middot; <a href="mailto:arthi1805@gmail.com">Email</a></p>
+<footer class="foot ink">
+  <div class="foot-in">
+    <div class="foot-col">
+      <p class="foot-brand">Wrong Numbers</p>
+      <p>LLM eval &amp; cost correctness audits by Arthi Arumugam. Bengaluru · IST · invoices in USD.</p>
+    </div>
+    <nav class="foot-col" aria-label="Site">
+      <span class="mini">( Site )</span>
+      <a href="/#ledger">Evidence</a>
+      <a href="/#audit">Audits</a>
+      <a href="/#proof">Record</a>
+      <a href="/#method">Method</a>
+      <a href="/#faq">FAQ</a>
+    </nav>
+    <nav class="foot-col" aria-label="Defect notes">
+      <span class="mini">( Defect notes )</span>
+      <a href="/articles/claude-bill-higher-than-dashboard/">Claude bill vs dashboard</a>
+      <a href="/articles/anthropic-cache-tokens-not-counted/" aria-current="page">Anthropic cache tokens</a>
+      <a href="/articles/openai-prompt-tokens-vs-anthropic-input-tokens/">prompt_tokens vs input_tokens</a>
+      <a href="/articles/streaming-message-delta-erases-token-usage/">Streaming message_delta</a>
+    </nav>
+    <nav class="foot-col" aria-label="Elsewhere">
+      <span class="mini">( Elsewhere )</span>
+      <a href="https://github.com/arthi-arumugam-git">GitHub</a>
+      <a href="https://www.linkedin.com/in/arthi-arumugam-ai-engineer">LinkedIn</a>
+      <a href="/feed.xml">RSS</a>
+      <a href="mailto:arthi1805@gmail.com">Email</a>
+    </nav>
+  </div>
+  <p class="foot-wm" aria-hidden="true"><span>W</span><span>r</span><span>o</span><span>n</span><span>g</span> <span>N</span><span>u</span><span>m</span><span>b</span><span>e</span><span>r</span><span>s</span></p>
+  <p class="foot-base"><span>© 2026 Wrong Numbers</span><span>0.0 ≠ nan</span></p>
 </footer>
 
-<script>
-  (function () {
-    var btn = document.getElementById("theme");
-    btn.addEventListener("click", function () {
-      var cur = document.documentElement.getAttribute("data-theme");
-      if (!cur) cur = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-      var next = cur === "dark" ? "light" : "dark";
-      document.documentElement.setAttribute("data-theme", next);
-      try { localStorage.setItem("theme", next); } catch (e) {}
-    });
-  })();
-</script>
+<script src="/article.js" defer></script>
 </body>
 </html>
