@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Silent LLM Eval and Cost Bugs: A Field Guide | Wrong Numbers</title>
+<meta name="description" content="Thirteen recurring shapes of bugs that make LLM eval scores, token counts and costs come out wrong while nothing raises, each with how to catch it. From 31 write-ups.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://wrong-numbers.dev/field-guide/">
+<meta name="theme-color" content="#0A0A0A">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://wrong-numbers.dev/field-guide/">
+<meta property="og:title" content="Silent LLM Eval and Cost Bugs: A Field Guide | Wrong Numbers">
+<meta property="og:description" content="Thirteen recurring shapes of bugs that make LLM eval scores, token counts and costs come out wrong while nothing raises, each with how to catch it. From 31 write-ups.">
+<meta property="og:site_name" content="Wrong Numbers">
+<meta property="og:image" content="https://wrong-numbers.dev/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Wrong Numbers: LLM eval and cost correctness audits. 0.0 is not nan.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Silent LLM Eval and Cost Bugs: A Field Guide | Wrong Numbers">
+<meta name="twitter:description" content="Thirteen recurring shapes of bugs that make LLM eval scores, token counts and costs come out wrong while nothing raises, each with how to catch it. From 31 write-ups.">
+<meta name="twitter:image" content="https://wrong-numbers.dev/og.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..108,400..900&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<link rel="alternate" type="application/rss+xml" title="Wrong Numbers" href="/feed.xml">
+<link rel="stylesheet" href="/home.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "TechArticle",
+      "@id": "https://wrong-numbers.dev/field-guide/#article",
+      "headline": "Thirteen ways an LLM number goes wrong without raising",
+      "description": "Thirteen recurring shapes of bugs that make LLM eval scores, token counts and costs come out wrong while nothing raises, each with how to catch it. From 31 write-ups.",
+      "url": "https://wrong-numbers.dev/field-guide/",
+      "mainEntityOfPage": "https://wrong-numbers.dev/field-guide/",
+      "author": {
+        "@type": "Person",
+        "@id": "https://wrong-numbers.dev/#person",
+        "name": "Arthi Arumugam",
+        "url": "https://wrong-numbers.dev/"
+      },
+      "publisher": {
+        "@type": "Person",
+        "@id": "https://wrong-numbers.dev/#person",
+        "name": "Arthi Arumugam",
+        "url": "https://wrong-numbers.dev/"
+      },
+      "dateModified": "2026-10-22",
+      "inLanguage": "en",
+      "about": [
+        "LLM evaluation",
+        "Token accounting",
+        "LLM cost tracking"
+      ],
+      "isBasedOn": "https://github.com/arthi-arumugam-git/wrong-numbers"
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://wrong-numbers.dev/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Field guide",
+          "item": "https://wrong-numbers.dev/field-guide/"
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="progress" aria-hidden="true"><span></span></div>
+
+<header class="bar">
+  <a class="bar-mark" href="/" aria-label="Wrong Numbers, home">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true"><path d="M5 11h18M5 17h18" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"/><path d="M17.5 4.5l-7 19" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"/></svg>
+    <span>Wrong Numbers</span>
+  </a>
+  <nav class="bar-nav" aria-label="Primary">
+    <a href="/#ledger">Evidence</a>
+    <a href="/audits/">Audits</a>
+    <a href="/field-guide/" aria-current="page" class="on">Field guide</a>
+    <a href="/#proof">Record</a>
+    <a href="/#faq">FAQ</a>
+  </nav>
+  <a class="bar-cta" href="mailto:arthi1805@gmail.com?subject=Audit%20enquiry">Book an audit</a>
+</header>
+
+<main id="main">
+  <section class="paper page-hero">
+    <div class="sec-in">
+      <ol class="crumbs" aria-label="Breadcrumb"><li><a href="/">Home</a></li><li aria-current="page">Field guide</li></ol>
+      <p class="label" data-reveal>( The field guide )</p>
+      <h1 class="page-title">Thirteen ways an LLM number goes wrong<span class="soft">without raising</span></h1>
+      <p class="page-lede" data-reveal>A field guide to one defect class in LLM eval, tracing and cost libraries: a number comes out wrong and nothing raises. Each shape below says what goes wrong and how to catch it in your own code.</p>
+    </div>
+  </section>
+
+  <section class="sec ink">
+    <div class="sec-in block-grid">
+      <div>
+        <p class="label" data-reveal>( Where it comes from )</p>
+        <h2 class="statement statement-sm scrub" data-reveal>31 write-ups,<br><span class="soft">13 shapes.</span></h2>
+      </div>
+      <div class="prose" data-reveal>
+        <p>The guide is drawn from 31 long-form write-ups, each reproduced against an installed package, behind pull requests in libraries such as inspect_evals, TruLens, lm-evaluation-harness, Pydantic Logfire, LiveKit and Pipecat.</p>
+        <p>The headline result is not any single bug. <strong>The same few shapes recur across codebases that share no code</strong>, which means each one can be caught by pattern rather than by luck.</p>
+        <p>The full write-ups, with the real numbers and links to every fix, are on <a href="https://github.com/arthi-arumugam-git/wrong-numbers">GitHub</a>.</p>
+      </div>
+    </div>
+    <div class="sec-in" style="margin-top: 56px">
+      <ol class="toc" data-reveal>
+        <li><a href="#cache-token-exclusion"><span>01</span>Cache-token exclusion</a></li>
+        <li><a href="#guard-filters-legal-value"><span>02</span>A guard that filters a legal value</a></li>
+        <li><a href="#silent-zero-metrics"><span>03</span>Silent-zero metrics</a></li>
+        <li><a href="#mismatched-denominator"><span>04</span>A denominator that does not match what was counted</a></li>
+        <li><a href="#fix-lands-on-some-twins"><span>05</span>The fix lands on some twins and not others</a></li>
+        <li><a href="#schema-default-scored-as-disagreement"><span>06</span>A schema default scored as a disagreement</a></li>
+        <li><a href="#truncation-scored-as-answer"><span>07</span>Truncation scored as the answer</a></li>
+        <li><a href="#aggregate-in-per-sample-field"><span>08</span>Aggregate written where the per-sample value belongs</a></li>
+        <li><a href="#unreachable-pricing-tiers"><span>09</span>Pricing tiers unreachable or mis-modeled</a></li>
+        <li><a href="#missing-price-data"><span>10</span>Missing price data, and cost silently dropped</a></li>
+        <li><a href="#config-silently-ignored"><span>11</span>Config accepted and silently ignored</a></li>
+        <li><a href="#merge-drops-usage"><span>12</span>A merge or copy that drops or corrupts usage</a></li>
+        <li><a href="#silence-beyond-numbers"><span>13</span>The same silence, somewhere other than a number</a></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="sec paper">
+    <div class="sec-in">
+      <section class="shape-sec" id="cache-token-exclusion" aria-labelledby="cache-token-exclusion-t">
+        <span class="big-n" aria-hidden="true" data-reveal>01</span>
+        <div data-reveal>
+          <h2 id="cache-token-exclusion-t">Cache-token exclusion</h2>
+          <p>A provider reports its input token count net of the prompt cache and bills the cache counters separately on top. The library maps that net count straight onto <code>prompt_tokens</code> and builds totals from it, so every token served from cache disappears from the accounting.</p>
+          <span class="mini">( How to catch it )</span>
+          <p>Grep for <code>input_tokens</code>, <code>inputTokens</code> or <code>prompt_tokens</code> assigned from a provider response with no cache-read or cache-write term nearby. Then build a usage object where the cached portion dwarfs the fresh one, say <code>input_tokens=3, cache_read_input_tokens=20000</code>, and assert the reported count equals the billed count.</p>
+          <p class="affected">Found in: Six frameworks: Pipecat, LiveKit, LlamaIndex, Haystack, mcp-use and CrewAI, each an independent implementation of the same arithmetic.</p>
+        </div>
+      </section>
+      <section class="shape-sec" id="guard-filters-legal-value" aria-labelledby="guard-filters-legal-value-t">
+        <span class="big-n" aria-hidden="true" data-reveal>02</span>
+        <div data-reveal>
+          <h2 id="guard-filters-legal-value-t">A guard that filters a legal value</h2>
+          <p>A truthiness or type check meant to skip missing data instead filters a legal value, such as <code>0</code>, an integer cost or a dict, and a default or nothing at all takes its place.</p>
+          <span class="mini">( How to catch it )</span>
+          <p>Grep for <code>if value:</code> and <code>if ... else</code> guards over numeric fields, <code>isinstance(..., float)</code> on money, and <code>hasattr</code> on objects that can arrive as dicts. A truthiness guard on a required field can only ever filter a legal value. Feed it <code>0</code>, <code>0.0</code>, an integer and a dict.</p>
+          <p class="affected">Found in: Three libraries.</p>
+        </div>
+      </section>
+      <section class="shape-sec" id="silent-zero-metrics" aria-labelledby="silent-zero-metrics-t">
+        <span class="big-n" aria-hidden="true" data-reveal>03</span>
+        <div data-reveal>
+          <h2 id="silent-zero-metrics-t">Silent-zero metrics</h2>
+          <p>A metric path that failed, or had nothing to score, emits a number on the metric's own scale instead of failing, and that number is indistinguishable from a real judgement.</p>
+          <span class="mini">( How to catch it )</span>
+          <p>Grep metric bodies for <code>else 0.0</code>, <code>return 0</code> and divisors forced to 1 on empty input. Feed a run where every sample failed to parse and a run where the model legitimately declined, and assert the two are distinguishable, ideally with the empty case returning <code>nan</code> or raising.</p>
+          <p class="affected">Found in: Two libraries.</p>
+        </div>
+      </section>
+      <section class="shape-sec" id="mismatched-denominator" aria-labelledby="mismatched-denominator-t">
+        <span class="big-n" aria-hidden="true" data-reveal>04</span>
+        <div data-reveal>
+          <h2 id="mismatched-denominator-t">A denominator that does not match what was counted</h2>
+          <p>The numerator is computed over a filtered or truncated set and the denominator over the original one, so the reported mean is scaled by a ratio nobody chose.</p>
+          <span class="mini">( How to catch it )</span>
+          <p>Grep for divisions where the numerator mentions <code>filter</code>, <code>isinstance</code>, a slice or a comprehension with an <code>if</code>, and the denominator is a bare <code>len()</code>. Score a list containing <code>None</code>s and assert a perfect run reports 1.0, and that an all-empty run raises.</p>
+          <p class="affected">Found in: Two libraries.</p>
+        </div>
+      </section>
+      <section class="shape-sec" id="fix-lands-on-some-twins" aria-labelledby="fix-lands-on-some-twins-t">
+        <span class="big-n" aria-hidden="true" data-reveal>05</span>
+        <div data-reveal>
+          <h2 id="fix-lands-on-some-twins-t">The fix lands on some twins and not others</h2>
+          <p>Near-identical sibling implementations of one contract exist, a fix or feature lands on some of them, and the siblings quietly disagree from then on.</p>
+          <span class="mini">( How to catch it )</span>
+          <p>When a fix lands, grep the rest of the repository for the exact line it replaced; the sibling still carrying it is the finding. Diff files that share a naming pattern, such as <code>precision.py</code>, <code>recall.py</code> and <code>f1_score.py</code>, and pin them with an invariant test across siblings.</p>
+          <p class="affected">Found in: Four libraries.</p>
+        </div>
+      </section>
+      <section class="shape-sec" id="schema-default-scored-as-disagreement" aria-labelledby="schema-default-scored-as-disagreement-t">
+        <span class="big-n" aria-hidden="true" data-reveal>06</span>
+        <div data-reveal>
+          <h2 id="schema-default-scored-as-disagreement-t">A schema default scored as a disagreement</h2>
+          <p>The scorer holds the function schema but never reads parameter defaults, so an optional parameter stated at its own default and the same parameter omitted are scored as disagreeing, in both directions.</p>
+          <span class="mini">( How to catch it )</span>
+          <p>Test the pair: ground truth omits the parameter and the model states the default, then the reverse. Both must score as agreement, and a non-default value must still fail.</p>
+          <p class="affected">Found in: One library.</p>
+        </div>
+      </section>
+      <section class="shape-sec" id="truncation-scored-as-answer" aria-labelledby="truncation-scored-as-answer-t">
+        <span class="big-n" aria-hidden="true" data-reveal>07</span>
+        <div data-reveal>
+          <h2 id="truncation-scored-as-answer-t">Truncation scored as the answer</h2>
+          <p>A generation that stops inside an unterminated block is scored as if the truncated reasoning were the model's answer.</p>
+          <span class="mini">( How to catch it )</span>
+          <p>Feed the scorer a generation cut off mid-reasoning, inside an unterminated tag or fence, and assert it is scored as unanswered rather than as whatever string the truncation left behind.</p>
+          <p class="affected">Found in: One library.</p>
+        </div>
+      </section>
+      <section class="shape-sec" id="aggregate-in-per-sample-field" aria-labelledby="aggregate-in-per-sample-field-t">
+        <span class="big-n" aria-hidden="true" data-reveal>08</span>
+        <div data-reveal>
+          <h2 id="aggregate-in-per-sample-field-t">Aggregate written where the per-sample value belongs</h2>
+          <p>A per-sample field is computed from a dataset-wide accumulator, so every sample's value drifts toward the running mean and depends on iteration order.</p>
+          <span class="mini">( How to catch it )</span>
+          <p>Grep for <code>+=</code> on a matrix or counter followed by a per-sample assignment that references the accumulated name. Then evaluate the same data forward and reversed and assert every sample keeps its score.</p>
+          <p class="affected">Found in: One library.</p>
+        </div>
+      </section>
+      <section class="shape-sec" id="unreachable-pricing-tiers" aria-labelledby="unreachable-pricing-tiers-t">
+        <span class="big-n" aria-hidden="true" data-reveal>09</span>
+        <div data-reveal>
+          <h2 id="unreachable-pricing-tiers-t">Pricing tiers unreachable or mis-modeled</h2>
+          <p>Multi-tier pricing exists in the data, and the code that selects a tier either cannot reach the higher tiers, applies the wrong tier-selection model, or never carries the tier data to the consumer at all.</p>
+          <span class="mini">( How to catch it )</span>
+          <p>For every model with more than one published tier, price one request above the threshold and compare against the provider's own bill. Check what the <code>default</code> branch of a tier switch actually selects.</p>
+          <p class="affected">Found in: Three libraries.</p>
+        </div>
+      </section>
+      <section class="shape-sec" id="missing-price-data" aria-labelledby="missing-price-data-t">
+        <span class="big-n" aria-hidden="true" data-reveal>10</span>
+        <div data-reveal>
+          <h2 id="missing-price-data-t">Missing price data, and cost silently dropped</h2>
+          <p>The price for a real model is absent, or the cost lookup fails, and an exception handler or a skip turns that into a span with token counts and an empty cost column.</p>
+          <span class="mini">( How to catch it )</span>
+          <p>Assert that every model name the SDK advertises resolves a price, and count cost assertions per integration test file; a provider with none is where the gap hides.</p>
+          <p class="affected">Found in: Two libraries.</p>
+        </div>
+      </section>
+      <section class="shape-sec" id="config-silently-ignored" aria-labelledby="config-silently-ignored-t">
+        <span class="big-n" aria-hidden="true" data-reveal>11</span>
+        <div data-reveal>
+          <h2 id="config-silently-ignored-t">Config accepted and silently ignored</h2>
+          <p>A parameter exists on the public signature, is accepted without complaint and is never wired to anything, so setting it does nothing, and its absence can even remove a protection the underlying library would have provided.</p>
+          <span class="mini">( How to catch it )</span>
+          <p>For every constructor and function parameter, grep for a use beyond the signature; a parameter read zero times is the finding. Pass a non-default value and assert observable behaviour changes.</p>
+          <p class="affected">Found in: One library.</p>
+        </div>
+      </section>
+      <section class="shape-sec" id="merge-drops-usage" aria-labelledby="merge-drops-usage-t">
+        <span class="big-n" aria-hidden="true" data-reveal>12</span>
+        <div data-reveal>
+          <h2 id="merge-drops-usage-t">A merge or copy that drops or corrupts usage</h2>
+          <p>Code that merges, accumulates or copies usage objects encodes its own assumption about the provider's stream semantics or the model's field list, and silently loses or inflates counters when that assumption is wrong.</p>
+          <span class="mini">( How to catch it )</span>
+          <p>Replay a recorded stream through both the library's accumulator and the vendor SDK's, and diff the results. Assert the output value itself, not only that <code>input + output == total</code>, which can hold while the output is wrong.</p>
+          <p class="affected">Found in: Three libraries.</p>
+        </div>
+      </section>
+      <section class="shape-sec" id="silence-beyond-numbers" aria-labelledby="silence-beyond-numbers-t">
+        <span class="big-n" aria-hidden="true" data-reveal>13</span>
+        <div data-reveal>
+          <h2 id="silence-beyond-numbers-t">The same silence, somewhere other than a number</h2>
+          <p>The same failure mode in different clothes: a code path produces something well-formed and plausible, hands it to a caller with no way to tell, and never says a word. The artifact is a message, a trace tree or a file rather than a float.</p>
+          <span class="mini">( How to catch it )</span>
+          <p>Write parity tests between streamed and non-streamed paths: the same request with <code>stream=true</code> and <code>stream=false</code> must produce the same tool calls. For files, assert exact bytes rather than parsed content.</p>
+          <p class="affected">Found in: Three libraries.</p>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <section class="sec ink">
+    <div class="sec-in">
+      <p class="label" data-reveal>( Find yours )</p>
+      <h2 class="statement statement-sm scrub" data-reveal>Shapes in your code?<br><span class="soft">That is what an audit finds.</span></h2>
+      <div class="related">
+        <a href="/audits/eval-integrity-audit/" data-reveal><span class="rk">Audit · E1</span><span class="rt">Eval integrity audit</span><span class="rp">From $5,000 →</span></a>
+        <a href="/audits/llm-cost-reconciliation/" data-reveal><span class="rk">Audit · C1</span><span class="rt">Cost reconciliation audit</span><span class="rp">From $5,000 →</span></a>
+        <a href="/audits/" data-reveal><span class="rk">All audits</span><span class="rt">Five ways in</span><span class="rp">Compare →</span></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec paper close">
+    <div class="sec-in">
+      <p class="label" data-reveal>( Send me a number )</p>
+      <h2 class="close-title scrubx" data-reveal>Let's find<br>the wrong <span class="hot">number.</span></h2>
+      <div class="close-row" data-reveal>
+        <p>Tell me which providers, libraries and eval harnesses sit in your path and I'll tell you where to look first, before you engage me.</p>
+        <div class="pills">
+          <a class="pill pill-light" href="mailto:arthi1805@gmail.com?subject=Field%20guide">Book an audit<span aria-hidden="true">→</span></a>
+          <a class="pill pill-line" href="mailto:arthi1805@gmail.com">arthi1805@gmail.com</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot ink">
+  <div class="foot-in">
+    <div class="foot-col">
+      <p class="foot-brand">Wrong Numbers</p>
+      <p>LLM eval &amp; cost correctness audits by Arthi Arumugam. Bengaluru · IST · invoices in USD.</p>
+    </div>
+    <nav class="foot-col" aria-label="Audits">
+      <span class="mini">( Audits )</span>
+      <a href="/audits/eval-integrity-audit/">Eval integrity audit</a>
+      <a href="/audits/eval-suite-build/">Eval suite build</a>
+      <a href="/audits/agent-regression-gates/">Agent regression gates</a>
+      <a href="/audits/llm-cost-reconciliation/">Cost reconciliation audit</a>
+      <a href="/audits/revenue-assurance/">Revenue assurance</a>
+      <a href="/audits/">All audits</a>
+    </nav>
+    <nav class="foot-col" aria-label="Read">
+      <span class="mini">( Read )</span>
+      <a href="/field-guide/">The field guide</a>
+      <a href="/articles/claude-bill-higher-than-dashboard/">Why your Claude bill is higher than your dashboard</a>
+      <a href="/articles/anthropic-cache-tokens-not-counted/">Anthropic cache tokens are not in total_tokens</a>
+      <a href="/articles/openai-prompt-tokens-vs-anthropic-input-tokens/">OpenAI prompt_tokens vs Anthropic input_tokens</a>
+      <a href="/articles/streaming-message-delta-erases-token-usage/">Streaming message_delta erases accumulated usage</a>
+    </nav>
+    <nav class="foot-col" aria-label="Elsewhere">
+      <span class="mini">( Elsewhere )</span>
+      <a href="https://github.com/arthi-arumugam-git">GitHub</a>
+      <a href="https://www.linkedin.com/in/arthi-arumugam-ai-engineer">LinkedIn</a>
+      <a href="/feed.xml">RSS</a>
+      <a href="mailto:arthi1805@gmail.com">Email</a>
+    </nav>
+  </div>
+  <p class="foot-wm" aria-hidden="true"><span>W</span><span>r</span><span>o</span><span>n</span><span>g</span> <span>N</span><span>u</span><span>m</span><span>b</span><span>e</span><span>r</span><span>s</span></p>
+  <p class="foot-base"><span>© 2026 Wrong Numbers</span><span>0.0 ≠ nan</span></p>
+</footer>
+
+<script src="/home.js" defer></script>
+</body>
+</html>

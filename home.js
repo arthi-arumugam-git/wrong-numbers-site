@@ -9,13 +9,13 @@
  *  3. scroll     progress bar, bar that hides on the way down, current-section
  *                nav, marquee that follows the scroll, and scroll-scrubbed effects:
  *                pinned hero that splits around the O, statements that light up word
- *                by word, films that scale in, parallax numbers, sliding offer names,
+ *                by word, parallax numbers, sliding offer names,
  *                a method line that fills, a closing line that flies in, rising footer.
- *  4. films      the Remotion loops play only while on screen, with a
- *                play/pause button; they stay on their poster under reduced motion.
+ *  4. story      "Anatomy of a wrong number": the pinned panel steps through its
+ *                states as each step's text reaches the middle of the screen.
  *  5. pointer    spotlight that follows the pointer over cards, magnetic
- *                buttons, 3D tilt on the ledger and the films. The system
- *                cursor is never replaced. Mouse and trackpad only.
+ *                buttons, 3D tilt on the ledger. The system cursor is never
+ *                replaced. Mouse and trackpad only.
  */
 (function () {
   "use strict";
@@ -259,8 +259,9 @@
   /* ---------- 3. scroll ---------- */
   (function scroll() {
     var bar = $(".bar"), prog = $(".progress span");
-    var links = $$(".bar-nav a");
-    var sections = links.map(function (a) { return $(a.getAttribute("href")); });
+    // only links to a section of this page take part; /audits/ and the like keep their own state
+    var links = $$(".bar-nav a").filter(function (a) { return a.hash && a.pathname === location.pathname; });
+    var sections = links.map(function (a) { return document.getElementById(a.hash.slice(1)); });
     var lastY = scrollY, ticking = false, velocity = 0, vh = innerHeight;
 
     // Scroll-scrubbed effects: each one writes a 0-to-1 progress variable that home.css maps
@@ -284,7 +285,6 @@
         });
       }
       track(".statement.scrub, .close-title.scrubx", function (el, r) { set(el, "--sp", (vh * 0.88 - r.top) / (vh * 0.5)); });
-      track(".film-frame, .guide-film", function (el, r) { set(el, "--fp", (vh - r.top) / (vh * 0.75)); });
       track(".case", function (el, r) { set(el, "--cp", (vh - r.top) / (vh + r.height)); });
       track(".offer", function (el, r) { set(el, "--op", (vh - r.top) / (vh * 0.55)); });
       track(".org-wall", function (el, r) { set(el, "--ow", (vh - r.top) / (vh + r.height)); });
@@ -347,54 +347,31 @@
     } else start();
   })();
 
-  /* ---------- 4. motion graphics ---------- */
-  // The Remotion loops play only while on screen, and never start on their own
-  // under reduced motion: the poster shows and the button offers Play instead.
-  $$("video.loop").forEach(function (video) {
-    var screen = video.parentNode, button = $(".loop-toggle", screen), label = button && $("span", button);
-    var heldByUser = reduce;
-    // Phones get the square cut. Drop any <source> whose media query does not match, so a
-    // browser that ignores media on video sources cannot load the phone cut on a desktop.
-    $$("source[media]", video).forEach(function (source) {
-      if (!matchMedia(source.media).matches) source.remove();
-    });
-    var phonePoster = video.getAttribute("data-poster-phone");
-    if (phonePoster && matchMedia("(max-width: 680px)").matches) video.poster = phonePoster;
-    function sync() {
-      screen.classList.toggle("is-paused", video.paused);
-      if (!button) return;
-      button.setAttribute("aria-label", video.paused ? "Play the animation" : "Pause the animation");
-      label.textContent = video.paused ? "Play" : "Pause";
+  /* ---------- 4. the anatomy story ---------- */
+  // Every step is plain text in the HTML; this only moves the decorative panel along.
+  (function story() {
+    var stage = $(".story-stage"), steps = $$(".story-steps li");
+    if (!stage || !steps.length || !hasIO) return;
+    var section = stage.closest(".story-sec");
+    if (section) section.classList.add("js-story");
+    function go(n) {
+      for (var k = 2; k <= 5; k++) stage.classList.toggle("is-" + k, n >= k);
+      steps.forEach(function (li) { li.classList.toggle("on", +li.getAttribute("data-step") === n); });
     }
-    function play() {
-      video.preload = "auto";
-      var p = video.play();
-      if (p && p.catch) p.catch(function () { sync(); });
-    }
-    video.addEventListener("play", sync);
-    video.addEventListener("pause", sync);
-    if (button) {
-      button.addEventListener("click", function () {
-        heldByUser = !video.paused;
-        if (video.paused) play(); else video.pause();
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) go(+e.target.getAttribute("data-step"));
       });
-    }
-    if (hasIO) {
-      new IntersectionObserver(function (entries) {
-        entries.forEach(function (e) {
-          if (e.isIntersecting) { if (!heldByUser) play(); }
-          else if (!video.paused) video.pause();
-        });
-      }, { threshold: 0.3 }).observe(video);
-    }
-    sync();
-  });
+    }, { rootMargin: "-45% 0px -45% 0px" });
+    steps.forEach(function (li) { io.observe(li); });
+    go(1);
+  })();
 
   /* ---------- 5. pointer ---------- */
   if (reduce || !fine) return;
 
   // spotlight: a soft glow follows the pointer across cards and rows
-  $$(".case, .offer, .faq article, .notes div, .steps li, .facts div, .stats div").forEach(function (el) {
+  $$(".case, .offer, .faq article, .notes div, .steps li, .facts div, .stats div, .checks li").forEach(function (el) {
     el.classList.add("spot");
     el.addEventListener("pointermove", function (e) {
       var r = el.getBoundingClientRect();
@@ -413,8 +390,8 @@
     el.addEventListener("pointerleave", function () { el.style.translate = ""; });
   });
 
-  // 3D tilt: the ledger and the two films turn toward the pointer
-  [[".ledger-wrap", ".ledger", 10, 8], [".film-frame", ".screen", 4, 3], [".guide-film", ".screen", 8, 6]].forEach(function (cfg) {
+  // 3D tilt: the ledger turns toward the pointer
+  [[".ledger-wrap", ".ledger", 10, 8]].forEach(function (cfg) {
     var stage = $(cfg[0]), el = stage && $(cfg[1], stage);
     if (!el) return;
     stage.addEventListener("pointermove", function (e) {

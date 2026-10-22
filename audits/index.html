@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>LLM Eval &amp; Cost Audits | Wrong Numbers</title>
+<meta name="description" content="Five fixed-fee audits for LLM eval scores, AI agent regressions, token cost accounting and usage-based billing. Every finding is delivered as a failing test with its fix.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://wrong-numbers.dev/audits/">
+<meta name="theme-color" content="#0A0A0A">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://wrong-numbers.dev/audits/">
+<meta property="og:title" content="LLM Eval &amp; Cost Audits | Wrong Numbers">
+<meta property="og:description" content="Five fixed-fee audits for LLM eval scores, AI agent regressions, token cost accounting and usage-based billing. Every finding is delivered as a failing test with its fix.">
+<meta property="og:site_name" content="Wrong Numbers">
+<meta property="og:image" content="https://wrong-numbers.dev/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Wrong Numbers: LLM eval and cost correctness audits. 0.0 is not nan.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="LLM Eval &amp; Cost Audits | Wrong Numbers">
+<meta name="twitter:description" content="Five fixed-fee audits for LLM eval scores, AI agent regressions, token cost accounting and usage-based billing. Every finding is delivered as a failing test with its fix.">
+<meta name="twitter:image" content="https://wrong-numbers.dev/og.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..108,400..900&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<link rel="alternate" type="application/rss+xml" title="Wrong Numbers" href="/feed.xml">
+<link rel="stylesheet" href="/home.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "ItemList",
+      "name": "LLM eval and cost audits",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "url": "https://wrong-numbers.dev/audits/eval-integrity-audit/",
+          "name": "Eval Integrity Audit"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "url": "https://wrong-numbers.dev/audits/eval-suite-build/",
+          "name": "Eval Suite Build"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "url": "https://wrong-numbers.dev/audits/agent-regression-gates/",
+          "name": "Agent Regression Gates"
+        },
+        {
+          "@type": "ListItem",
+          "position": 4,
+          "url": "https://wrong-numbers.dev/audits/llm-cost-reconciliation/",
+          "name": "Cost Reconciliation Audit"
+        },
+        {
+          "@type": "ListItem",
+          "position": 5,
+          "url": "https://wrong-numbers.dev/audits/revenue-assurance/",
+          "name": "Revenue Assurance"
+        }
+      ]
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://wrong-numbers.dev/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Audits",
+          "item": "https://wrong-numbers.dev/audits/"
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="progress" aria-hidden="true"><span></span></div>
+
+<header class="bar">
+  <a class="bar-mark" href="/" aria-label="Wrong Numbers, home">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true"><path d="M5 11h18M5 17h18" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"/><path d="M17.5 4.5l-7 19" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"/></svg>
+    <span>Wrong Numbers</span>
+  </a>
+  <nav class="bar-nav" aria-label="Primary">
+    <a href="/#ledger">Evidence</a>
+    <a href="/audits/" aria-current="page" class="on">Audits</a>
+    <a href="/field-guide/">Field guide</a>
+    <a href="/#proof">Record</a>
+    <a href="/#faq">FAQ</a>
+  </nav>
+  <a class="bar-cta" href="mailto:arthi1805@gmail.com?subject=Audit%20enquiry">Book an audit</a>
+</header>
+
+<main id="main">
+  <section class="paper page-hero">
+    <div class="sec-in">
+      <ol class="crumbs" aria-label="Breadcrumb"><li><a href="/">Home</a></li><li aria-current="page">Audits</li></ol>
+      <p class="label" data-reveal>( Five ways in )</p>
+      <h1 class="page-title">LLM eval and cost audits<span class="soft">Fixed scope. Fixed fee.</span></h1>
+      <p class="page-lede" data-reveal>Each audit ends the same way: every defect delivered as a failing test with its fix, and a check that fails the build the next time the number goes wrong. No retainer, no discovery-call theatre.</p>
+    </div>
+  </section>
+
+  <section class="sec paper" style="padding-top: 0">
+    <div class="sec-in">
+      <div class="track">
+        <h2 class="track-title" data-reveal>Is the score right? <span>( 03 )</span></h2>
+        <ul class="offers">
+          <li class="offer" data-reveal>
+            <div class="offer-row"><span class="offer-code">E1</span><h4><a href="/audits/eval-integrity-audit/">Eval Integrity Audit</a></h4><span class="offer-price">From $5,000</span></div>
+            <div class="offer-detail">
+              <p class="offer-for">I take the eval suite you already run and check whether its numbers mean what you think they mean. Every finding comes back as a failing test with its fix.</p>
+              <ul class="ticks">
+                <li>Empty and mismatched denominators</li>
+                <li>LLM-as-judge parsing</li>
+                <li>Truncated output</li>
+                <li>Ground truth and sample counts</li>
+              </ul>
+              <div class="offer-get"><span class="mini">Fixed fee</span><p>A findings report with the real numbers before and after each fix.</p><a class="pill pill-ink pill-sm" href="/audits/eval-integrity-audit/">Full scope and FAQ<span aria-hidden="true">→</span></a></div>
+            </div>
+          </li>
+          <li class="offer" data-reveal>
+            <div class="offer-row"><span class="offer-code">E2</span><h4><a href="/audits/eval-suite-build/">Eval Suite Build</a></h4><span class="offer-price">From $10,000</span></div>
+            <div class="offer-detail">
+              <p class="offer-for">Evals designed around your product's real failure modes, not a leaderboard's, and built so that when something goes wrong, a test goes red.</p>
+              <ul class="ticks">
+                <li>Ground-truth data and rubrics</li>
+                <li>Judges that fail closed</li>
+                <li>Metrics that report nan</li>
+                <li>On your stack</li>
+              </ul>
+              <div class="offer-get"><span class="mini">Fixed fee</span><p>The eval suite in your repository, documented.</p><a class="pill pill-ink pill-sm" href="/audits/eval-suite-build/">Full scope and FAQ<span aria-hidden="true">→</span></a></div>
+            </div>
+          </li>
+          <li class="offer" data-reveal>
+            <div class="offer-row"><span class="offer-code">E3</span><h4><a href="/audits/agent-regression-gates/">Agent Regression Gates</a></h4><span class="offer-price">From $5,000</span></div>
+            <div class="offer-detail">
+              <p class="offer-for">Catch the agent run that quietly stopped calling a tool, before your users do.</p>
+              <ul class="ticks">
+                <li>Run diffs, step by step</li>
+                <li>Your traces, as they are</li>
+                <li>Failure gates you choose</li>
+                <li>Streamed and non-streamed parity</li>
+              </ul>
+              <div class="offer-get"><span class="mini">Fixed fee</span><p>Gates running in your CI, tuned to your agents.</p><a class="pill pill-ink pill-sm" href="/audits/agent-regression-gates/">Full scope and FAQ<span aria-hidden="true">→</span></a></div>
+            </div>
+          </li>
+        </ul>
+      </div>
+      <div class="track">
+        <h2 class="track-title" data-reveal>Is the bill right? <span>( 02 )</span></h2>
+        <ul class="offers">
+          <li class="offer" data-reveal>
+            <div class="offer-row"><span class="offer-code">C1</span><h4><a href="/audits/llm-cost-reconciliation/">Cost Reconciliation Audit</a></h4><span class="offer-price">From $5,000</span></div>
+            <div class="offer-detail">
+              <p class="offer-for">When your reported LLM spend and your provider's invoice disagree, one of them is wrong. I find out which, and deliver every defect as a failing test with its fix.</p>
+              <ul class="ticks">
+                <li>Provider adapters</li>
+                <li>Cache-token conventions</li>
+                <li>Streaming paths</li>
+                <li>Prices and retries</li>
+              </ul>
+              <div class="offer-get"><span class="mini">Fixed fee</span><p>A reconciliation report against your provider invoice.</p><a class="pill pill-ink pill-sm" href="/audits/llm-cost-reconciliation/">Full scope and FAQ<span aria-hidden="true">→</span></a></div>
+            </div>
+          </li>
+          <li class="offer" data-reveal>
+            <div class="offer-row"><span class="offer-code">C2</span><h4><a href="/audits/revenue-assurance/">Revenue Assurance</a></h4><span class="offer-price">$10,000</span></div>
+            <div class="offer-detail">
+              <p class="offer-for">If you bill customers by usage, the same defect that makes your dashboard wrong makes your invoices wrong. I reconcile what you metered against what you charged.</p>
+              <ul class="ticks">
+                <li>Metered against invoiced</li>
+                <li>Under-billing</li>
+                <li>Over-billing</li>
+                <li>Cost basis</li>
+              </ul>
+              <div class="offer-get"><span class="mini">Fixed fee</span><p>A signed reconciliation you can hand a CFO, board or acquirer.</p><a class="pill pill-ink pill-sm" href="/audits/revenue-assurance/">Full scope and FAQ<span aria-hidden="true">→</span></a></div>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec ink">
+    <div class="sec-in">
+      <p class="label" data-reveal>( Method )</p>
+      <h2 class="statement statement-sm scrub" data-reveal>Explain the number<br><span class="soft">before changing it.</span></h2>
+      <ol class="steps">
+        <li data-reveal><span class="step-n">01</span><h3>Reproduce</h3><p>Hold the model, prompts and tool schemas constant, and rerun until every number is accounted for, against a known-answer test or your provider's invoice.</p></li>
+        <li data-reveal><span class="step-n">02</span><h3>Measure</h3><p>A baseline noise check first, then the real numbers, with the limits of the measurement written down.</p></li>
+        <li data-reveal><span class="step-n">03</span><h3>Fix</h3><p>A pull request for each finding, with a test that fails on the old behaviour and passes on the new.</p></li>
+        <li data-reveal><span class="step-n">04</span><h3>Gate</h3><p>Checks wired into CI, so the next wrong number fails the build instead of reaching a decision or an invoice.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="sec paper close">
+    <div class="sec-in">
+      <p class="label" data-reveal>( Send me a number )</p>
+      <h2 class="close-title scrubx" data-reveal>Let's find<br>the wrong <span class="hot">number.</span></h2>
+      <div class="close-row" data-reveal>
+        <p>Tell me which providers, libraries and eval harnesses sit in your path and I'll tell you where to look first, before you engage me.</p>
+        <div class="pills">
+          <a class="pill pill-light" href="mailto:arthi1805@gmail.com?subject=Audit%20enquiry">Book an audit<span aria-hidden="true">→</span></a>
+          <a class="pill pill-line" href="mailto:arthi1805@gmail.com">arthi1805@gmail.com</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot ink">
+  <div class="foot-in">
+    <div class="foot-col">
+      <p class="foot-brand">Wrong Numbers</p>
+      <p>LLM eval &amp; cost correctness audits by Arthi Arumugam. Bengaluru · IST · invoices in USD.</p>
+    </div>
+    <nav class="foot-col" aria-label="Audits">
+      <span class="mini">( Audits )</span>
+      <a href="/audits/eval-integrity-audit/">Eval integrity audit</a>
+      <a href="/audits/eval-suite-build/">Eval suite build</a>
+      <a href="/audits/agent-regression-gates/">Agent regression gates</a>
+      <a href="/audits/llm-cost-reconciliation/">Cost reconciliation audit</a>
+      <a href="/audits/revenue-assurance/">Revenue assurance</a>
+      <a href="/audits/">All audits</a>
+    </nav>
+    <nav class="foot-col" aria-label="Read">
+      <span class="mini">( Read )</span>
+      <a href="/field-guide/">The field guide</a>
+      <a href="/articles/claude-bill-higher-than-dashboard/">Why your Claude bill is higher than your dashboard</a>
+      <a href="/articles/anthropic-cache-tokens-not-counted/">Anthropic cache tokens are not in total_tokens</a>
+      <a href="/articles/openai-prompt-tokens-vs-anthropic-input-tokens/">OpenAI prompt_tokens vs Anthropic input_tokens</a>
+      <a href="/articles/streaming-message-delta-erases-token-usage/">Streaming message_delta erases accumulated usage</a>
+    </nav>
+    <nav class="foot-col" aria-label="Elsewhere">
+      <span class="mini">( Elsewhere )</span>
+      <a href="https://github.com/arthi-arumugam-git">GitHub</a>
+      <a href="https://www.linkedin.com/in/arthi-arumugam-ai-engineer">LinkedIn</a>
+      <a href="/feed.xml">RSS</a>
+      <a href="mailto:arthi1805@gmail.com">Email</a>
+    </nav>
+  </div>
+  <p class="foot-wm" aria-hidden="true"><span>W</span><span>r</span><span>o</span><span>n</span><span>g</span> <span>N</span><span>u</span><span>m</span><span>b</span><span>e</span><span>r</span><span>s</span></p>
+  <p class="foot-base"><span>© 2026 Wrong Numbers</span><span>0.0 ≠ nan</span></p>
+</footer>
+
+<script src="/home.js" defer></script>
+</body>
+</html>
