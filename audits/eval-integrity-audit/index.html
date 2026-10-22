@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>LLM Eval Integrity Audit | Wrong Numbers</title>
+<meta name="description" content="A fixed-fee audit of the LLM eval suite you already run: scorers, empty denominators, LLM-as-judge parsing, truncation and sample counts. From $5,000.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://wrong-numbers.dev/audits/eval-integrity-audit/">
+<meta name="theme-color" content="#0A0A0A">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://wrong-numbers.dev/audits/eval-integrity-audit/">
+<meta property="og:title" content="LLM Eval Integrity Audit | Wrong Numbers">
+<meta property="og:description" content="A fixed-fee audit of the LLM eval suite you already run: scorers, empty denominators, LLM-as-judge parsing, truncation and sample counts. From $5,000.">
+<meta property="og:site_name" content="Wrong Numbers">
+<meta property="og:image" content="https://wrong-numbers.dev/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Wrong Numbers: LLM eval and cost correctness audits. 0.0 is not nan.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="LLM Eval Integrity Audit | Wrong Numbers">
+<meta name="twitter:description" content="A fixed-fee audit of the LLM eval suite you already run: scorers, empty denominators, LLM-as-judge parsing, truncation and sample counts. From $5,000.">
+<meta name="twitter:image" content="https://wrong-numbers.dev/og.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..108,400..900&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<link rel="alternate" type="application/rss+xml" title="Wrong Numbers" href="/feed.xml">
+<link rel="stylesheet" href="/home.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Service",
+      "@id": "https://wrong-numbers.dev/audits/eval-integrity-audit/#service",
+      "name": "Eval Integrity Audit",
+      "url": "https://wrong-numbers.dev/audits/eval-integrity-audit/",
+      "description": "A fixed-fee audit of the LLM eval suite you already run: scorers, empty denominators, LLM-as-judge parsing, truncation and sample counts. From $5,000.",
+      "serviceType": "LLM eval integrity audit",
+      "provider": {
+        "@type": "Person",
+        "@id": "https://wrong-numbers.dev/#person",
+        "name": "Arthi Arumugam",
+        "url": "https://wrong-numbers.dev/"
+      },
+      "areaServed": "Worldwide",
+      "offers": {
+        "@type": "Offer",
+        "price": "5000",
+        "priceCurrency": "USD",
+        "url": "https://wrong-numbers.dev/audits/eval-integrity-audit/"
+      }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://wrong-numbers.dev/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Audits",
+          "item": "https://wrong-numbers.dev/audits/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Eval Integrity Audit",
+          "item": "https://wrong-numbers.dev/audits/eval-integrity-audit/"
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What does an LLM eval integrity audit check?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The code that turns model outputs into scores: metrics and their denominators, LLM-as-judge parsing, handling of truncated output, ground-truth alignment, sample counts and per-run token accounting. Each one gets the same question: when this goes wrong, does anything raise, or does a plausible number come out?"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which eval frameworks do you work with?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "inspect_evals, lm-evaluation-harness and TruLens, where I have merged fixes upstream, and others such as deepeval, lighteval and harnesses built in-house. The audit reads your code and the framework code it relies on."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why would my eval score read 0.0 instead of failing?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Usually an empty denominator: a metric that measured nothing returns its starting value instead of nan. 0.0 is indistinguishable from a model that got everything wrong, so the run looks complete. Reporting nan, or raising, makes the problem visible."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How much does an eval audit cost?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "From $5,000, fixed fee and fixed scope, with no retainer. The quote depends on how many metrics, judges and datasets the suite has, and it is agreed before work starts."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="progress" aria-hidden="true"><span></span></div>
+
+<header class="bar">
+  <a class="bar-mark" href="/" aria-label="Wrong Numbers, home">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true"><path d="M5 11h18M5 17h18" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"/><path d="M17.5 4.5l-7 19" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"/></svg>
+    <span>Wrong Numbers</span>
+  </a>
+  <nav class="bar-nav" aria-label="Primary">
+    <a href="/#ledger">Evidence</a>
+    <a href="/audits/" aria-current="page" class="on">Audits</a>
+    <a href="/field-guide/">Field guide</a>
+    <a href="/#proof">Record</a>
+    <a href="/#faq">FAQ</a>
+  </nav>
+  <a class="bar-cta" href="mailto:arthi1805@gmail.com?subject=Audit%20enquiry">Book an audit</a>
+</header>
+
+<main id="main">
+  <section class="paper page-hero">
+    <div class="sec-in">
+      <ol class="crumbs" aria-label="Breadcrumb"><li><a href="/">Home</a></li><li><a href="/audits/">Audits</a></li><li aria-current="page">Eval Integrity Audit</li></ol>
+      <p class="label" data-reveal>( Is the score right? · E1 )</p>
+      <h1 class="page-title">LLM eval integrity audit<span class="soft">Is your eval score right?</span></h1>
+      <p class="page-lede" data-reveal>I take the eval suite you already run and check whether its numbers mean what you think they mean. Every finding comes back as a failing test with its fix.</p>
+      <div class="page-facts" data-reveal>
+        <p class="price-tag"><small>Fixed fee · fixed scope</small>From $5,000</p>
+        <div class="pills">
+          <a class="pill pill-ink" href="mailto:arthi1805@gmail.com?subject=Eval%20integrity%20audit">Book this audit<span aria-hidden="true">→</span></a>
+          <a class="pill pill-line" href="#scope">See what's checked</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec ink">
+    <div class="sec-in block-grid">
+      <div>
+        <p class="label" data-reveal>( Who it's for )</p>
+        <h2 class="statement statement-sm scrub" data-reveal>Who this<br><span class="soft">is for.</span></h2>
+      </div>
+      <div class="prose" data-reveal>
+        <p>For teams whose model choices, launches or safety claims rest on an eval score, whether it comes from inspect_evals, lm-evaluation-harness, TruLens, deepeval or a harness built in-house.</p>
+        <p>Eval bugs rarely crash. A metric with nothing to score reports 0.0, a judge's restated scale is read as its rating, a truncated answer is graded as complete. The run finishes, the dashboard fills in, and the number is wrong. The audit looks for exactly that: <strong>the value stays plausible and nothing raises.</strong></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec paper" id="scope">
+    <div class="sec-in">
+      <p class="label" data-reveal>( What I check )</p>
+      <h2 class="statement statement-sm scrub" data-reveal>Six places<br><span class="soft">the number goes wrong.</span></h2>
+      <ol class="checks">
+        <li data-reveal><span class="ck">01</span><h3>Empty and mismatched denominators</h3><p>What each metric returns when nothing was scored, and whether its numerator and denominator count the same samples. A metric with no samples should report nan or raise, not 0.0.</p></li>
+        <li data-reveal><span class="ck">02</span><h3>LLM-as-judge parsing</h3><p>Whether the judge's verdict is what gets read, rather than a number from the rubric or the stated scale, and what happens when a rating fails to parse.</p></li>
+        <li data-reveal><span class="ck">03</span><h3>Truncated output</h3><p>Whether a generation cut off mid-reasoning, inside an unterminated block, is scored as the model's answer instead of as unanswered.</p></li>
+        <li data-reveal><span class="ck">04</span><h3>Ground truth and sample counts</h3><p>Whether rows are matched to the right labels, whether scores depend on iteration order, and whether reported counts reflect what was actually evaluated.</p></li>
+        <li data-reveal><span class="ck">05</span><h3>Schema defaults in tool calls</h3><p>For function-calling evals, whether an optional parameter stated at its own default is scored as a disagreement.</p></li>
+        <li data-reveal><span class="ck">06</span><h3>Tokens and cost per run</h3><p>Whether the usage and spend your eval reports for each run match what the provider actually billed.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="sec ink">
+    <div class="sec-in">
+      <p class="label" data-reveal>( What you get )</p>
+      <h2 class="statement statement-sm scrub" data-reveal>Fixed scope.<br><span class="soft">Fixed fee. No retainer.</span></h2>
+      <div class="block-grid">
+        <p class="price-tag" data-reveal><small>Eval integrity audit</small>From $5,000</p>
+        <ul class="ticks" data-reveal>
+          <li>A findings report with the real numbers before and after each fix</li>
+          <li>A fix for every finding, as a pull request or patch against your code</li>
+          <li>A regression test for each finding that fails on the old behaviour and passes on the new</li>
+          <li>A CI check so the same class of bug fails the build next time</li>
+        </ul>
+      </div>
+      <h3 class="mini-head">( How it runs )</h3>
+      <ol class="steps">
+        <li data-reveal><span class="step-n">01</span><h3>Reproduce</h3><p>Hold the model, prompts and tool schemas constant, and rerun until every number is accounted for, against a known-answer test or your provider's invoice.</p></li>
+        <li data-reveal><span class="step-n">02</span><h3>Measure</h3><p>A baseline noise check first, then the real numbers, with the limits of the measurement written down.</p></li>
+        <li data-reveal><span class="step-n">03</span><h3>Fix</h3><p>A pull request for each finding, with a test that fails on the old behaviour and passes on the new.</p></li>
+        <li data-reveal><span class="step-n">04</span><h3>Gate</h3><p>Checks wired into CI, so the next wrong number fails the build instead of reaching a decision or an invoice.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="sec paper" id="faq">
+    <div class="sec-in">
+      <p class="label" data-reveal>( Questions )</p>
+      <h2 class="statement statement-sm scrub" data-reveal>Eval integrity audit,<br><span class="soft">answered.</span></h2>
+      <div class="faq">
+        <article data-reveal>
+          <h3>What does an LLM eval integrity audit check?</h3>
+          <p>The code that turns model outputs into scores: metrics and their denominators, LLM-as-judge parsing, handling of truncated output, ground-truth alignment, sample counts and per-run token accounting. Each one gets the same question: when this goes wrong, does anything raise, or does a plausible number come out?</p>
+        </article>
+        <article data-reveal>
+          <h3>Which eval frameworks do you work with?</h3>
+          <p>inspect_evals, lm-evaluation-harness and TruLens, where I have merged fixes upstream, and others such as deepeval, lighteval and harnesses built in-house. The audit reads your code and the framework code it relies on.</p>
+        </article>
+        <article data-reveal>
+          <h3>Why would my eval score read 0.0 instead of failing?</h3>
+          <p>Usually an empty denominator: a metric that measured nothing returns its starting value instead of nan. 0.0 is indistinguishable from a model that got everything wrong, so the run looks complete. Reporting nan, or raising, makes the problem visible.</p>
+        </article>
+        <article data-reveal>
+          <h3>How much does an eval audit cost?</h3>
+          <p>From $5,000, fixed fee and fixed scope, with no retainer. The quote depends on how many metrics, judges and datasets the suite has, and it is agreed before work starts.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec ink">
+    <div class="sec-in">
+      <p class="label" data-reveal>( Evidence )</p>
+      <h2 class="statement statement-sm scrub" data-reveal>Fixed upstream,<br><span class="soft">in public.</span></h2>
+      <ul class="evidence-list" data-reveal>
+        <li><a href="https://github.com/UKGovernmentBEIS/inspect_evals/pull/2174"><span class="er">UKGovernmentBEIS/inspect_evals #2174</span><span class="et">Return nan rather than 0.0 when a metric has no samples</span></a></li>
+        <li><a href="https://github.com/UKGovernmentBEIS/inspect_evals/pull/2042"><span class="er">UKGovernmentBEIS/inspect_evals #2042</span><span class="et">Stop penalising optional parameters at their schema default</span></a></li>
+        <li><a href="https://github.com/UKGovernmentBEIS/inspect_evals/pull/2097"><span class="er">UKGovernmentBEIS/inspect_evals #2097</span><span class="et">Stop scoring truncated reasoning as the model&#x27;s answer</span></a></li>
+        <li><a href="https://github.com/truera/trulens/pull/2726"><span class="er">truera/trulens #2726</span><span class="et">Stop reading a judge&#x27;s stated scale as its rating</span></a></li>
+        <li><a href="https://github.com/truera/trulens/pull/2737"><span class="er">truera/trulens #2737</span><span class="et">Score ground-truth rows in row order, not index-label order</span></a></li>
+        <li><a href="https://github.com/EleutherAI/lm-evaluation-harness/pull/4068"><span class="er">EleutherAI/lm-evaluation-harness #4068</span><span class="et">Report a sample count that does not depend on metric order</span></a></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="sec paper">
+    <div class="sec-in">
+      <p class="label" data-reveal>( Related )</p>
+      <h2 class="statement statement-sm scrub" data-reveal>Keep reading.</h2>
+      <div class="related">
+        <a href="/audits/eval-suite-build/" data-reveal><span class="rk">Audit · E2</span><span class="rt">Eval Suite Build</span><span class="rp">From $10,000 →</span></a>
+        <a href="/audits/agent-regression-gates/" data-reveal><span class="rk">Audit · E3</span><span class="rt">Agent Regression Gates</span><span class="rp">From $5,000 →</span></a>
+        <a href="/field-guide/#silent-zero-metrics" data-reveal><span class="rk">Field guide · 03</span><span class="rt">Silent-zero metrics</span><span class="rp">Read →</span></a>
+        <a href="/field-guide/#mismatched-denominator" data-reveal><span class="rk">Field guide · 04</span><span class="rt">A denominator that does not match what was counted</span><span class="rp">Read →</span></a>
+        <a href="/field-guide/#truncation-scored-as-answer" data-reveal><span class="rk">Field guide · 07</span><span class="rt">Truncation scored as the answer</span><span class="rp">Read →</span></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec ink close">
+    <div class="sec-in">
+      <p class="label" data-reveal>( Send me a number )</p>
+      <h2 class="close-title scrubx" data-reveal>Let's find<br>the wrong <span class="hot">number.</span></h2>
+      <div class="close-row" data-reveal>
+        <p>Tell me which providers, libraries and eval harnesses sit in your path and I'll tell you where to look first, before you engage me.</p>
+        <div class="pills">
+          <a class="pill pill-light" href="mailto:arthi1805@gmail.com?subject=Eval%20integrity%20audit">Book an audit<span aria-hidden="true">→</span></a>
+          <a class="pill pill-line" href="mailto:arthi1805@gmail.com">arthi1805@gmail.com</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot ink">
+  <div class="foot-in">
+    <div class="foot-col">
+      <p class="foot-brand">Wrong Numbers</p>
+      <p>LLM eval &amp; cost correctness audits by Arthi Arumugam. Bengaluru · IST · invoices in USD.</p>
+    </div>
+    <nav class="foot-col" aria-label="Audits">
+      <span class="mini">( Audits )</span>
+      <a href="/audits/eval-integrity-audit/">Eval integrity audit</a>
+      <a href="/audits/eval-suite-build/">Eval suite build</a>
+      <a href="/audits/agent-regression-gates/">Agent regression gates</a>
+      <a href="/audits/llm-cost-reconciliation/">Cost reconciliation audit</a>
+      <a href="/audits/revenue-assurance/">Revenue assurance</a>
+      <a href="/audits/">All audits</a>
+    </nav>
+    <nav class="foot-col" aria-label="Read">
+      <span class="mini">( Read )</span>
+      <a href="/field-guide/">The field guide</a>
+      <a href="/articles/claude-bill-higher-than-dashboard/">Why your Claude bill is higher than your dashboard</a>
+      <a href="/articles/anthropic-cache-tokens-not-counted/">Anthropic cache tokens are not in total_tokens</a>
+      <a href="/articles/openai-prompt-tokens-vs-anthropic-input-tokens/">OpenAI prompt_tokens vs Anthropic input_tokens</a>
+      <a href="/articles/streaming-message-delta-erases-token-usage/">Streaming message_delta erases accumulated usage</a>
+    </nav>
+    <nav class="foot-col" aria-label="Elsewhere">
+      <span class="mini">( Elsewhere )</span>
+      <a href="https://github.com/arthi-arumugam-git">GitHub</a>
+      <a href="https://www.linkedin.com/in/arthi-arumugam-ai-engineer">LinkedIn</a>
+      <a href="/feed.xml">RSS</a>
+      <a href="mailto:arthi1805@gmail.com">Email</a>
+    </nav>
+  </div>
+  <p class="foot-wm" aria-hidden="true"><span>W</span><span>r</span><span>o</span><span>n</span><span>g</span> <span>N</span><span>u</span><span>m</span><span>b</span><span>e</span><span>r</span><span>s</span></p>
+  <p class="foot-base"><span>© 2026 Wrong Numbers</span><span>0.0 ≠ nan</span></p>
+</footer>
+
+<script src="/home.js" defer></script>
+</body>
+</html>
