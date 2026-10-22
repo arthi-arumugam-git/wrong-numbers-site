@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <title>Why your Claude bill is higher than your dashboard</title>
-<meta name="description" content="Four reasons your reported LLM spend comes in under the invoice, ranked by how often each one is the culprit, and a ten-minute check that tells you which.">
+<meta name="description" content="Four possible causes of under-reported LLM spend and a reconciliation check to narrow the investigation.">
 <link rel="canonical" href="https://wrong-numbers.dev/articles/claude-bill-higher-than-dashboard/">
 
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://wrong-numbers.dev/articles/claude-bill-higher-than-dashboard/">
 <meta property="og:title" content="Why your Claude bill is higher than your dashboard">
-<meta property="og:description" content="Four causes, ranked by frequency, and a ten-minute reconciliation that identifies which one is yours.">
+<meta property="og:description" content="Four possible causes and a reconciliation check to guide your investigation.">
 <meta property="og:site_name" content="Wrong Numbers">
 <meta name="twitter:card" content="summary_large_image">
 
@@ -29,7 +29,7 @@
   "@context": "https://schema.org",
   "@type": "TechArticle",
   "headline": "Why your Claude bill is higher than your dashboard says",
-  "description": "Four causes of under-reported LLM spend, ranked by frequency, with a ten-minute reconciliation to identify which one applies.",
+  "description": "Four possible causes of under-reported LLM spend, with a reconciliation check to guide investigation.",
   "author": { "@type": "Person", "name": "Arthi Arumugam", "url": "https://wrong-numbers.dev/", "sameAs": ["https://github.com/arthi-arumugam-git"] },
   "publisher": { "@type": "Person", "name": "Arthi Arumugam" },
   "mainEntityOfPage": "https://wrong-numbers.dev/articles/claude-bill-higher-than-dashboard/",
@@ -60,7 +60,7 @@
   <p class="lede">
     Your application says you spent $4,100 on Anthropic last month. The invoice says $11,800.
     Nothing errored, no test went red, and both numbers look plausible. Here are the four causes,
-    ranked by how often each one turns out to be the culprit.
+    to investigate; this list is not a measured frequency ranking.
   </p>
 
   <h2>1. Cached tokens were never counted</h2>
@@ -105,19 +105,20 @@
     from your price map, and whether any request costed exactly 0.
   </p>
 
-  <h2>3. Streaming lost the usage it had already accumulated</h2>
+  <h2>3. Streaming dropped the input-side usage</h2>
 
   <p>
-    On streamed responses, usage arrives across events. Code accumulates it per chunk, then a
-    final <code>message_delta</code> arrives and the handler <em>assigns</em> rather than
-    <em>adds</em> — erasing everything counted so far.
+    Anthropic sends input and cache usage in <code>message_start</code>, then cumulative output
+    token counts in <code>message_delta</code>. Replacing the whole usage object with a later
+    event drops the input fields. Preserve those fields and assign the latest output total;
+    adding cumulative counts would double-count output tokens.
   </p>
 
-<pre><code># wrong: the final delta replaces the running total
+<pre><code># wrong: the final delta replaces the whole usage object
 usage = event.usage
 
-# right: the final delta contributes to it
-usage.output_tokens += event.usage.output_tokens</code></pre>
+# right: preserve input and cache fields; output_tokens is cumulative
+usage.output_tokens = event.usage.output_tokens</code></pre>
 
   <p>
     The tell: <strong>streamed calls under-report and non-streamed calls are correct.</strong>
@@ -148,16 +149,16 @@ usage.output_tokens += event.usage.output_tokens</code></pre>
   <ol>
     <li>Pick one production day. Sum the cost your system reported for Anthropic calls.</li>
     <li>Take the actual figure for the same window from the Anthropic console.</li>
-    <li>Compute the gap as a percentage. Under 2% is rounding. Over 10% is a defect.</li>
+    <li>Compute the gap as a percentage. Differences may reflect scope, timing, discounts or missing data; no percentage alone establishes a defect.</li>
     <li>
       Split the same day four ways — by cache-hit rate, by model, by <code>stream=True</code>,
-      and by error rate. <strong>Whichever split makes the gap move is your cause.</strong>
+      and by error rate. <strong>A split that changes the gap helps narrow the investigation.</strong>
     </li>
   </ol>
 
   <p>
     That last step is the whole method. A single aggregate number tells you that something is
-    wrong; the splits tell you which of the four it is. Most teams never run the splits, because
+    worth investigating; the splits help you test possible causes. Most teams never run the splits, because
     nothing has broken loudly enough to make anyone look.
   </p>
 
