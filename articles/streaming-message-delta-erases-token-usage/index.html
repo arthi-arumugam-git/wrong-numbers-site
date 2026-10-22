@@ -94,7 +94,7 @@ async for event in stream:
     if event.usage:
         usage = event.usage        # input_tokens and cache reads: gone
 
-# RIGHT — the input side is captured once, the output side accumulates
+# RIGHT — the input side is captured once; cumulative output totals replace prior totals
 async for event in stream:
     if event.type == "message_start":
         usage = event.message.usage
@@ -164,15 +164,15 @@ async for event in stream:
 
   <ol>
     <li>Split one production day's reconciliation by <code>stream=True</code> and <code>stream=False</code>.</li>
-    <li>If the gap sits almost entirely on the streamed side, this is your defect.</li>
-    <li>Find every handler that reads usage from a stream event and check whether it assigns or accumulates.</li>
+    <li>If the gap sits almost entirely on the streamed side, inspect usage handling before concluding this is the defect.</li>
+    <li>Find every handler that reads usage from a stream event and check whether it preserves input fields and assigns the cumulative output total.</li>
     <li>Check gateways too — a proxy that re-emits events can drop <code>message_start</code> fields on the way through.</li>
   </ol>
 
   <div class="callout">
     <p>
-      <strong>If your reported spend and your provider invoice disagree, one of them is lying.</strong>
-      Tell me which providers, libraries and gateways sit in your path and I'll tell you where to
+      <strong>Check whether your LLM usage records reconcile.</strong>
+      Differences may arise from scope, timing, discounts or missing data. Tell me which providers, libraries and gateways sit in your path and I'll tell you where to
       look first — before you engage me.
       <a href="mailto:arthi1805@gmail.com?subject=Streaming%20usage">arthi1805@gmail.com</a>
     </p>
